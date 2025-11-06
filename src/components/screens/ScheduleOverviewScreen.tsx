@@ -3,7 +3,7 @@ import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { PostChecklistModal } from '../PostChecklistModal';
 import { PlatformIcon } from '../ui/PlatformIcon';
-import { Clock, TrendingUp, CheckCircle, RefreshCw, ExternalLink, AlertTriangle, Copy } from 'lucide-react';
+import { CheckCircle, ExternalLink, AlertTriangle, Copy } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ChecklistState } from '../../types';
 import { format } from 'date-fns';
@@ -18,7 +18,6 @@ export function ScheduleOverviewScreen() {
   const [selectedRecommendation, setSelectedRecommendation] = useState<RecommendedPost | null>(null);
   const [showChecklist, setShowChecklist] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [refreshCounter, setRefreshCounter] = useState(0); // Force refresh counter
   const [lastRecommendationId, setLastRecommendationId] = useState<string | null>(null);
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
@@ -115,28 +114,23 @@ export function ScheduleOverviewScreen() {
   
   // Force re-render when posts are logged to immediately show next recommendation
   useEffect(() => {
-    // SUPER AGGRESSIVE refresh with refresh counter
+    // SUPER AGGRESSIVE refresh
     setCurrentTime(new Date()); // Immediate
-    setRefreshCounter(prev => prev + 1); // Force re-render
     
     const timer1 = setTimeout(() => {
       setCurrentTime(new Date());
-      setRefreshCounter(prev => prev + 1);
     }, 50);
     
     const timer2 = setTimeout(() => {
       setCurrentTime(new Date());
-      setRefreshCounter(prev => prev + 1);
     }, 150);
     
     const timer3 = setTimeout(() => {
       setCurrentTime(new Date());
-      setRefreshCounter(prev => prev + 1);
     }, 300);
     
     const timer4 = setTimeout(() => {
       setCurrentTime(new Date());
-      setRefreshCounter(prev => prev + 1);
     }, 500);
     
     return () => {
@@ -199,13 +193,6 @@ export function ScheduleOverviewScreen() {
     }
   }, [nextRecommendation, lastRecommendationId]);
 
-  // Manual refresh function
-  const handleManualRefresh = () => {
-    setCurrentTime(new Date());
-    setRefreshCounter(prev => prev + 1);
-    console.log('🔄 Manual refresh triggered');
-  };
-
   const handlePostNow = (recommendation: RecommendedPost) => {
     setSelectedRecommendation(recommendation);
     setShowChecklist(true);
@@ -231,25 +218,21 @@ export function ScheduleOverviewScreen() {
         // Log the post without a slot ID (dynamic posting)
         logPost(undefined, checklistState, notes, account.id, account.platform);
         
-        // NUCLEAR OPTION: Force complete state reset
+        // Force complete state reset
         setTimeout(() => {
           setCurrentTime(new Date());
-          setRefreshCounter(prev => prev + 1);
         }, 0);
         
         setTimeout(() => {
           setCurrentTime(new Date());
-          setRefreshCounter(prev => prev + 1);
         }, 100);
         
         setTimeout(() => {
           setCurrentTime(new Date());
-          setRefreshCounter(prev => prev + 1);
         }, 250);
         
         setTimeout(() => {
           setCurrentTime(new Date());
-          setRefreshCounter(prev => prev + 1);
         }, 500);
         
         console.log('✅ Post logged, forced refresh triggered');
@@ -325,48 +308,6 @@ export function ScheduleOverviewScreen() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-3 sm:p-4 pb-24 sm:pb-4">
       <div className="max-w-4xl mx-auto py-8">
-        {/* Current Time */}
-        <Card className="shadow-lg mb-6 text-center">
-          <div className="inline-flex items-center gap-2 text-sm text-gray-500 mb-2">
-            <Clock className="w-4 h-4" />
-            <span>Current Time</span>
-          </div>
-          <div className="text-5xl font-bold text-gray-900 mb-1">
-            {format(currentTime, 'HH:mm:ss')}
-          </div>
-          <div className="text-sm text-gray-600">
-            {format(currentTime, 'EEEE, MMMM d, yyyy')}
-          </div>
-        </Card>
-
-        {/* Manual Refresh Button */}
-        <div className="mb-6 text-center">
-          <Button
-            onClick={handleManualRefresh}
-            className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 font-bold shadow-lg"
-          >
-            <RefreshCw className="w-5 h-5 mr-2" />
-            🔄 Force Refresh Recommendations
-          </Button>
-          <p className="text-xs text-gray-500 mt-2">
-            Click if next post doesn't appear after logging (Debug: refresh #{refreshCounter})
-          </p>
-        </div>
-
-        {/* Info Card */}
-        <Card className="shadow-lg mb-6 bg-blue-50 border-2 border-blue-200">
-          <div className="flex items-start gap-3">
-            <TrendingUp className="w-6 h-6 text-blue-600 mt-1" />
-            <div>
-              <h3 className="font-bold text-blue-900 mb-1">Dynamic Recommendations</h3>
-              <p className="text-sm text-blue-800">
-                Post times are <strong>recommendations</strong> that adjust automatically based on when you actually post. 
-                Morning and evening shifts are tracked separately. Complete interactions after each post to maintain engagement!
-              </p>
-            </div>
-          </div>
-        </Card>
-
         {/* Main Next Post Card */}
         {nextRecommendation ? (
           <Card className="shadow-2xl border-4 border-white mb-6">
