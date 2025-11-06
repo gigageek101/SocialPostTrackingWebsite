@@ -1,9 +1,9 @@
-import { Calendar, Home, Users, Settings, List, FileText, BookOpen, UserCog } from 'lucide-react';
+import { Calendar, Home, Users, Settings, List, FileText, BookOpen, UserCog, Cloud } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Screen } from '../types';
 
 export function Navigation() {
-  const { currentScreen, setCurrentScreen } = useApp();
+  const { currentScreen, setCurrentScreen, isSyncing } = useApp();
 
   const navItems: Array<{ screen: Screen; icon: React.ReactNode; label: string }> = [
     { screen: 'schedule-overview', icon: <Home className="w-6 h-6" />, label: 'Today' },
@@ -18,10 +18,26 @@ export function Navigation() {
 
   return (
     <>
-      {/* Desktop Navigation - Top */}
-      <nav className="hidden md:block bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex justify-center items-center gap-2">
+          {/* Desktop Navigation - Top */}
+          <nav className="hidden md:block bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+            <div className="max-w-7xl mx-auto px-4">
+              <div className="flex justify-between items-center">
+                {/* Sync Indicator */}
+                <div className="flex items-center gap-2 px-4">
+                  {isSyncing ? (
+                    <>
+                      <Cloud className="w-4 h-4 text-blue-600 animate-pulse" />
+                      <span className="text-xs text-blue-600 font-semibold">Syncing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Cloud className="w-4 h-4 text-green-600" />
+                      <span className="text-xs text-green-600 font-semibold">Synced</span>
+                    </>
+                  )}
+                </div>
+                
+                <div className="flex justify-center items-center gap-2 flex-1">
             {navItems.map((item) => {
               const isActive = currentScreen === item.screen;
               
@@ -38,11 +54,15 @@ export function Navigation() {
                   {item.icon}
                   <span className="text-xs font-semibold uppercase tracking-wide">{item.label}</span>
                 </button>
-              );
-            })}
-          </div>
-        </div>
-      </nav>
+                  );
+                })}
+                </div>
+                
+                {/* Placeholder for balance */}
+                <div className="w-24"></div>
+              </div>
+            </div>
+          </nav>
 
       {/* Mobile Navigation - Bottom (iOS/Android style) */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white shadow-lg border-t-2 border-gray-200 z-50 safe-area-bottom">
