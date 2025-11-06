@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
-import { AlertTriangle, Award } from 'lucide-react';
-import { Platform, ChecklistItem, ChecklistState } from '../types';
+import { AlertTriangle, Award, Timer, Play, Pause } from 'lucide-react';
+import { Platform, ChecklistItem, ChecklistState, PostLogEntry } from '../types';
 import { CHECKLIST_TEMPLATES } from '../constants/platforms';
 
 interface PostChecklistModalProps {
@@ -12,6 +12,7 @@ interface PostChecklistModalProps {
   onSubmit: (checklistState: ChecklistState, notes: string) => void;
   postLabel?: string;
   shift?: string;
+  todayPosts?: PostLogEntry[];
 }
 
 export function PostChecklistModal({
@@ -21,8 +22,24 @@ export function PostChecklistModal({
   onSubmit,
   postLabel = 'First',
   shift = 'morning',
+  todayPosts = [],
 }: PostChecklistModalProps) {
   const template = CHECKLIST_TEMPLATES.find((t) => t.platform === platform);
+  
+  // Check if 10 DMs have been completed today
+  const dmsCompletedToday = todayPosts.some(post => 
+    post.checklistState.items.some(item => 
+      item.id === 'tiktok-dms' && item.completed
+    )
+  );
+  
+  // Filter out DMs item if already completed today
+  const templateItems = template?.items.filter(item => {
+    if (item.id === 'tiktok-dms' && dmsCompletedToday) {
+      return false; // Hide this item
+    }
+    return true;
+  }) || [];
   
   // Add completion item at the beginning
   const completionItem: ChecklistItem = {
@@ -34,10 +51,15 @@ export function PostChecklistModal({
   
   const [items, setItems] = useState<ChecklistItem[]>([
     completionItem,
-    ...(template?.items.map((item) => ({ ...item, completed: false })) || [])
+    ...templateItems.map((item) => ({ ...item, completed: false }))
   ]);
   const [notes, setNotes] = useState('');
   const [modified, setModified] = useState(false);
+  
+  // Timer state for scrolling activities
+  const [timerActive, setTimerActive] = useState<string | null>(null); // ID of item with active timer
+  const [timerSeconds, setTimerSeconds] = useState(180); // 3 minutes = 180 seconds
+  const [timerPaused, setTimerPaused] = useState(false);
 
   const handleToggle = (id: string) => {
     setItems((prev) =>
@@ -64,6 +86,52 @@ export function PostChecklistModal({
     });
   };
 
+  // Timer effect
+  useEffect(() => {
+    if (!timerActive || timerPaused || timerSeconds <= 0) return;
+    
+    const interval = setInterval(() => {
+      setTimerSeconds(prev => {
+        if (prev <= 1) {
+          // Timer completed! Auto-tick the box
+          setItems(prevItems =>
+            prevItems.map(item =>
+              item.id === timerActive ? { ...item, completed: true } : item
+            )
+          );
+          setTimerActive(null);
+          setTimerSeconds(180);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [timerActive, timerPaused, timerSeconds]);
+
+  const startTimer = (itemId: string) => {
+    setTimerActive(itemId);
+    setTimerSeconds(180);
+    setTimerPaused(false);
+  };
+
+  const pauseTimer = () => {
+    setTimerPaused(!timerPaused);
+  };
+
+  const stopTimer = () => {
+    setTimerActive(null);
+    setTimerSeconds(180);
+    setTimerPaused(false);
+  };
+
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const handleSubmit = () => {
     const checklistState: ChecklistState = {
       platform,
@@ -74,9 +142,10 @@ export function PostChecklistModal({
     onSubmit(checklistState, notes);
     
     // Reset
-    setItems(template?.items.map((item) => ({ ...item, completed: false })) || []);
+    setItems(templateItems.map((item) => ({ ...item, completed: false })));
     setNotes('');
     setModified(false);
+    stopTimer();
   };
 
   if (!template) return null;
@@ -110,54 +179,106 @@ export function PostChecklistModal({
         <div className="space-y-4">
           <h3 className="font-semibold text-gray-900 text-lg">Now it's time for:</h3>
           
-          {items.map((item, index) => (
+          {items.map((item, index) => {
+            // Check if this item should have a timer (view stories / scrolling)
+            const needsTimer = item.id === 'tiktok-view-stories' || item.label.toLowerCase().includes('scroll');
+            const isTimerActive = timerActive === item.id;
+            
+            return (
             <div
               key={item.id}
-              className={`flex items-center gap-4 p-4 rounded-lg smooth-transition ${
+              className={`p-4 rounded-lg smooth-transition ${
                 index === 0 
                   ? 'bg-green-50 border-2 border-green-300' 
+                  : isTimerActive 
+                  ? 'bg-blue-50 border-2 border-blue-300'
                   : 'bg-gray-50 hover:bg-gray-100'
               }`}
             >
-              {item.type === 'toggle' ? (
-                <>
-                  <input
-                    type="checkbox"
-                    checked={item.completed}
-                    onChange={() => handleToggle(item.id)}
-                    className="w-5 h-5 rounded border-gray-300 text-blue-600 focus-ring"
-                  />
-                  <label className="flex-1 text-gray-900 cursor-pointer">
-                    {item.label}
-                  </label>
-                </>
-              ) : (
-                <>
-                  <input
-                    type="checkbox"
-                    checked={item.completed}
-                    onChange={() => handleToggle(item.id)}
-                    className="w-5 h-5 rounded border-gray-300 text-blue-600 focus-ring"
-                  />
-                  <label className="flex-1 text-gray-900">{item.label}</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={item.count || 0}
-                    onChange={(e) =>
-                      handleCountChange(item.id, parseInt(e.target.value) || 0)
-                    }
-                    className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus-ring"
-                  />
-                  {item.recommendedCount && (
-                    <span className="text-sm text-gray-600">
-                      (Rec: {item.recommendedCount})
-                    </span>
+              <div className="flex items-center gap-4">
+                {item.type === 'toggle' ? (
+                  <>
+                    <input
+                      type="checkbox"
+                      checked={item.completed}
+                      onChange={() => handleToggle(item.id)}
+                      className="w-5 h-5 rounded border-gray-300 text-blue-600 focus-ring"
+                      disabled={isTimerActive}
+                    />
+                    <label className="flex-1 text-gray-900 cursor-pointer">
+                      {item.label}
+                    </label>
+                  </>
+                ) : (
+                  <>
+                    <input
+                      type="checkbox"
+                      checked={item.completed}
+                      onChange={() => handleToggle(item.id)}
+                      className="w-5 h-5 rounded border-gray-300 text-blue-600 focus-ring"
+                    />
+                    <label className="flex-1 text-gray-900">{item.label}</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={item.count || 0}
+                      onChange={(e) =>
+                        handleCountChange(item.id, parseInt(e.target.value) || 0)
+                      }
+                      className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus-ring"
+                    />
+                    {item.recommendedCount && (
+                      <span className="text-sm text-gray-600">
+                        (Rec: {item.recommendedCount})
+                      </span>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* Timer UI for scrolling activities */}
+              {needsTimer && !item.completed && (
+                <div className="mt-3 pt-3 border-t-2 border-gray-200">
+                  {!isTimerActive ? (
+                    <Button
+                      onClick={() => startTimer(item.id)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
+                      size="sm"
+                    >
+                      <Play className="w-4 h-4" />
+                      Start 3-Minute Timer
+                    </Button>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-mono text-xl font-bold">
+                        <Timer className="w-5 h-5" />
+                        {formatTime(timerSeconds)}
+                      </div>
+                      <Button
+                        onClick={pauseTimer}
+                        className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                        size="sm"
+                      >
+                        {timerPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+                      </Button>
+                      <Button
+                        onClick={stopTimer}
+                        variant="secondary"
+                        size="sm"
+                      >
+                        Stop
+                      </Button>
+                    </div>
                   )}
-                </>
+                  {isTimerActive && (
+                    <p className="text-xs text-blue-600 mt-2">
+                      ⏳ Box will auto-tick when timer completes
+                    </p>
+                  )}
+                </div>
               )}
             </div>
-          ))}
+          )})}
         </div>
 
         {/* Notes */}

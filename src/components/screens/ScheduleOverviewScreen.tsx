@@ -632,6 +632,7 @@ export function ScheduleOverviewScreen() {
           onSubmit={handleChecklistSubmit}
           postLabel={getOrdinal(selectedRecommendation.postNumber)}
           shift={selectedRecommendation.shift}
+          todayPosts={todayPosts}
         />
       )}
     </div>
