@@ -74,6 +74,16 @@ export function getNextRecommendedPost(
     return shift === 'morning' ? hour < 14 : hour >= 14;
   });
   
+  // Debug logging
+  if (accountPostsToday.length > 0) {
+    console.log(`📊 Scheduler for ${account.handle} (${platform}), ${shift} shift:`, {
+      totalPostsToday: accountPostsToday.length,
+      postsInThisShift: shiftPosts.length,
+      maxPostsForShift: getMaxPostsForPlatformShift(platform, shift),
+      nextPostNumber: shiftPosts.length + 1
+    });
+  }
+  
   // Determine how many posts for this platform in this shift
   const maxPosts = getMaxPostsForPlatformShift(platform, shift);
   
