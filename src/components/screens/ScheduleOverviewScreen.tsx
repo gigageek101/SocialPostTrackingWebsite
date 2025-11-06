@@ -80,13 +80,9 @@ export function ScheduleOverviewScreen() {
         // Log the post without a slot ID (dynamic posting)
         logPost(undefined, checklistState, notes, account.id, account.platform);
         
+        // Close modal immediately
         setShowChecklist(false);
         setSelectedRecommendation(null);
-        
-        // Force refresh to show next recommendation immediately
-        setTimeout(() => {
-          setCurrentTime(new Date());
-        }, 100);
       }
     }
   };
