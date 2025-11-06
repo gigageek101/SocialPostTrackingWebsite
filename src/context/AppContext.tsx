@@ -8,6 +8,7 @@ import {
   PostLogEntry,
   Screen,
   ChecklistState,
+  Platform,
 } from '../types';
 import { loadFromStorage, saveToStorage, exportData } from '../utils/storage';
 import { generateId, getBrowserTimezone } from '../utils/helpers';
@@ -35,7 +36,7 @@ interface AppContextType {
   deleteAccount: (id: string) => void;
   
   // Posts
-  logPost: (slotId: string, checklistState: ChecklistState, notes: string) => void;
+  logPost: (slotId: string | undefined, checklistState: ChecklistState, notes: string, accountId?: string, platform?: Platform) => void;
   logUnscheduledPost: (accountId: string, platform: string, checklistState: ChecklistState, notes: string) => void;
   
   // Daily plans
@@ -201,59 +202,108 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }));
   };
 
-  const logPost = (slotId: string, checklistState: ChecklistState, notes: string) => {
+  const logPost = (
+    slotId: string | undefined, 
+    checklistState: ChecklistState, 
+    notes: string,
+    accountId?: string,
+    platform?: Platform
+  ) => {
     const now = getCurrentUTC();
     
     setState((prev) => {
-      const plan = prev.dailyPlans.find((p) => p.date === getTodayKey());
-      if (!plan) return prev;
+      let targetAccountId: string;
+      let targetPlatform: Platform;
       
-      const slot = plan.slots.find((s) => s.id === slotId);
-      if (!slot) return prev;
-      
-      const account = prev.accounts.find((a) => a.id === slot.accountId);
-      if (!account) return prev;
-      
-      const creator = prev.creators.find((c) => c.id === account.creatorId);
-      
-      const postLog: PostLogEntry = {
-        id: generateId(),
-        slotId,
-        accountId: slot.accountId,
-        platform: slot.platform,
-        timestampUTC: now,
-        timestampCreatorTZ: formatInTimezone(
-          now,
-          creator?.timezone || DEFAULT_CREATOR_TIMEZONE,
-          true
-        ),
-        timestampUserTZ: formatInTimezone(
-          now,
-          prev.userSettings?.userTimezone || getBrowserTimezone(),
-          true
-        ),
-        checklistState,
-        notes,
-        createdAt: now,
-      };
-      
-      // Update slot status
-      const updatedPlan = {
-        ...plan,
-        slots: plan.slots.map((s) =>
-          s.id === slotId
-            ? { ...s, status: 'posted' as const, postLogId: postLog.id }
-            : s
-        ),
-      };
-      
-      return {
-        ...prev,
-        postLogs: [...prev.postLogs, postLog],
-        dailyPlans: prev.dailyPlans.map((p) =>
-          p.id === plan.id ? updatedPlan : p
-        ),
-      };
+      if (slotId) {
+        // Scheduled post with slot
+        const plan = prev.dailyPlans.find((p) => p.date === getTodayKey());
+        if (!plan) return prev;
+        
+        const slot = plan.slots.find((s) => s.id === slotId);
+        if (!slot) return prev;
+        
+        targetAccountId = slot.accountId;
+        targetPlatform = slot.platform;
+        
+        const account = prev.accounts.find((a) => a.id === targetAccountId);
+        if (!account) return prev;
+        
+        const creator = prev.creators.find((c) => c.id === account.creatorId);
+        
+        const postLog: PostLogEntry = {
+          id: generateId(),
+          slotId,
+          accountId: targetAccountId,
+          platform: targetPlatform,
+          timestampUTC: now,
+          timestampCreatorTZ: formatInTimezone(
+            now,
+            creator?.timezone || DEFAULT_CREATOR_TIMEZONE,
+            true
+          ),
+          timestampUserTZ: formatInTimezone(
+            now,
+            prev.userSettings?.userTimezone || getBrowserTimezone(),
+            true
+          ),
+          checklistState,
+          notes,
+          createdAt: now,
+        };
+        
+        // Update slot status
+        const updatedPlan = {
+          ...plan,
+          slots: plan.slots.map((s) =>
+            s.id === slotId
+              ? { ...s, status: 'posted' as const, postLogId: postLog.id }
+              : s
+          ),
+        };
+        
+        return {
+          ...prev,
+          postLogs: [...prev.postLogs, postLog],
+          dailyPlans: prev.dailyPlans.map((p) =>
+            p.id === plan.id ? updatedPlan : p
+          ),
+        };
+      } else {
+        // Dynamic post without slot (requires accountId and platform)
+        if (!accountId || !platform) return prev;
+        
+        const account = prev.accounts.find((a) => a.id === accountId);
+        if (!account) return prev;
+        
+        const creator = prev.creators.find((c) => c.id === account.creatorId);
+        
+        const postLog: PostLogEntry = {
+          id: generateId(),
+          slotId: undefined,
+          accountId,
+          platform,
+          timestampUTC: now,
+          timestampCreatorTZ: formatInTimezone(
+            now,
+            creator?.timezone || DEFAULT_CREATOR_TIMEZONE,
+            true
+          ),
+          timestampUserTZ: formatInTimezone(
+            now,
+            prev.userSettings?.userTimezone || getBrowserTimezone(),
+            true
+          ),
+          checklistState,
+          notes,
+          createdAt: now,
+        };
+        
+        return {
+          ...prev,
+          postLogs: [...prev.postLogs, postLog],
+        };
+      }
     });
   };
 

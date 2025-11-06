@@ -122,6 +122,7 @@ export interface AppState {
 export type Screen = 
   | 'onboarding'
   | 'schedule-overview'
+  | 'scheduled-posts'
   | 'calendar'
   | 'creators'
   | 'settings';
