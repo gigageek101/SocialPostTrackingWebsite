@@ -10,6 +10,8 @@ interface PostChecklistModalProps {
   onClose: () => void;
   platform: Platform;
   onSubmit: (checklistState: ChecklistState, notes: string) => void;
+  postLabel?: string;
+  shift?: string;
 }
 
 export function PostChecklistModal({
@@ -17,12 +19,23 @@ export function PostChecklistModal({
   onClose,
   platform,
   onSubmit,
+  postLabel = 'First',
+  shift = 'morning',
 }: PostChecklistModalProps) {
   const template = CHECKLIST_TEMPLATES.find((t) => t.platform === platform);
   
-  const [items, setItems] = useState<ChecklistItem[]>(
-    template?.items.map((item) => ({ ...item, completed: false })) || []
-  );
+  // Add completion item at the beginning
+  const completionItem: ChecklistItem = {
+    id: 'post-completion',
+    label: `${postLabel} post of ${shift} shift completed`,
+    type: 'toggle',
+    completed: true, // Auto-checked
+  };
+  
+  const [items, setItems] = useState<ChecklistItem[]>([
+    completionItem,
+    ...(template?.items.map((item) => ({ ...item, completed: false })) || [])
+  ]);
   const [notes, setNotes] = useState('');
   const [modified, setModified] = useState(false);
 
@@ -69,15 +82,15 @@ export function PostChecklistModal({
   if (!template) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Post Checklist" size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} title="Time for Interacting! 🎯" size="lg">
       <div className="space-y-6">
-        {/* Recommended Protocol Badge */}
-        <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <Award className="w-6 h-6 text-blue-600" />
+        {/* Post Completion Notice */}
+        <div className="flex items-center gap-3 p-4 bg-green-50 border-2 border-green-300 rounded-lg">
+          <Award className="w-6 h-6 text-green-600" />
           <div>
-            <h3 className="font-semibold text-blue-900">{template.recommendedProtocol}</h3>
-            <p className="text-sm text-blue-700">
-              Follow this method for best results
+            <h3 className="font-semibold text-green-900 text-lg">Post Completed!</h3>
+            <p className="text-sm text-green-700">
+              Now complete these interactions for maximum engagement
             </p>
           </div>
         </div>
@@ -95,12 +108,16 @@ export function PostChecklistModal({
 
         {/* Checklist Items */}
         <div className="space-y-4">
-          <h3 className="font-semibold text-gray-900">Tasks to Complete:</h3>
+          <h3 className="font-semibold text-gray-900 text-lg">Now it's time for:</h3>
           
-          {items.map((item) => (
+          {items.map((item, index) => (
             <div
               key={item.id}
-              className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 smooth-transition"
+              className={`flex items-center gap-4 p-4 rounded-lg smooth-transition ${
+                index === 0 
+                  ? 'bg-green-50 border-2 border-green-300' 
+                  : 'bg-gray-50 hover:bg-gray-100'
+              }`}
             >
               {item.type === 'toggle' ? (
                 <>

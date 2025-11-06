@@ -76,23 +76,20 @@ export function ScheduleOverviewScreen() {
     }
   };
 
-  // Get all relevant upcoming slots (pending or on cooldown, within next 4 hours)
+  // Get all relevant upcoming slots (only future posts)
   const upcomingSlots = todayPlan?.slots
     .filter((s) => {
       if (s.status === 'posted' || s.status === 'skipped') return false;
       const minutesUntil = getMinutesUntil(s.scheduledTimeUTC);
-      // Show slots that are due or within next 4 hours
-      return minutesUntil < 240;
+      // Only show future posts (not past ones)
+      return minutesUntil > -10; // Allow 10 minute grace period
     })
     .sort((a, b) => a.scheduledTimeUTC.localeCompare(b.scheduledTimeUTC)) || [];
 
-  // Get the primary next action slot (first ready one, or first upcoming)
-  const nextSlot = upcomingSlots.find((s) => {
-    const minutesUntil = getMinutesUntil(s.scheduledTimeUTC);
-    return minutesUntil <= 0;
-  }) || upcomingSlots[0];
+  // Get the primary next action slot (closest upcoming post)
+  const nextSlot = upcomingSlots[0];
 
-  // Get account info
+  // Get account info with shift tracking
   const getAccountInfo = (slot: DailyPlanSlot) => {
     const account = state.accounts.find((a) => a.id === slot.accountId);
     const creator = state.creators.find((c) => c.id === account?.creatorId);
@@ -101,7 +98,41 @@ export function ScheduleOverviewScreen() {
     const platformAccounts = state.accounts.filter((a) => a.platform === slot.platform);
     const accountIndex = platformAccounts.findIndex((a) => a.id === slot.accountId) + 1;
     
-    return { account, creator, accountIndex };
+    // Determine shift and post number within shift
+    const scheduledHour = new Date(slot.scheduledTimeUTC).getUTCHours();
+    const isEvening = scheduledHour >= 14; // 14:00 UTC+ is evening
+    const shift = isEvening ? 'evening' : 'morning';
+    
+    // Count which post this is in the shift for this account/platform
+    const accountSlots = todayPlan?.slots.filter(
+      (s) => s.accountId === slot.accountId && s.platform === slot.platform
+    ) || [];
+    
+    const sortedSlots = accountSlots.sort((a, b) => 
+      a.scheduledTimeUTC.localeCompare(b.scheduledTimeUTC)
+    );
+    
+    const slotIndex = sortedSlots.findIndex((s) => s.id === slot.id);
+    
+    // Determine post number in shift
+    let postNumberInShift = 1;
+    let shiftPostCount = 1;
+    
+    if (slot.platform === 'tiktok' || slot.platform === 'threads') {
+      // 3 morning, 3 evening
+      if (slotIndex >= 3) {
+        postNumberInShift = slotIndex - 2; // Evening: 1, 2, 3
+      } else {
+        postNumberInShift = slotIndex + 1; // Morning: 1, 2, 3
+      }
+      shiftPostCount = 3;
+    } else if (slot.platform === 'instagram' || slot.platform === 'facebook') {
+      // 1 morning, 1 evening (or 2 morning, 2 evening for FB)
+      postNumberInShift = 1;
+      shiftPostCount = slot.platform === 'facebook' ? 2 : 1;
+    }
+    
+    return { account, creator, accountIndex, shift, postNumberInShift, shiftPostCount };
   };
 
   if (!state.userSettings) return null;
@@ -135,12 +166,24 @@ export function ScheduleOverviewScreen() {
     );
   }
 
-  const { account, creator, accountIndex } = getAccountInfo(nextSlot);
+  const { account, creator, accountIndex, shift, postNumberInShift, shiftPostCount } = getAccountInfo(nextSlot);
   if (!account || !creator) return null;
 
   const minutesUntil = getMinutesUntil(nextSlot.scheduledTimeUTC);
-  const isReady = minutesUntil <= 0;
+  const isReady = minutesUntil <= 0 && minutesUntil > -10;
   const platformName = PLATFORM_NAMES[nextSlot.platform];
+  
+  // Get ordinal for post number
+  const getOrdinal = (n: number) => {
+    const s = ['th', 'st', 'nd', 'rd'];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  };
+  
+  const postLabel = postNumberInShift === 1 ? 'First' : 
+                    postNumberInShift === 2 ? 'Second' : 
+                    postNumberInShift === 3 ? 'Third' : 
+                    getOrdinal(postNumberInShift);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
@@ -237,7 +280,7 @@ export function ScheduleOverviewScreen() {
                 </div>
               )}
 
-              {/* Clock In Button */}
+              {/* Post Button */}
               <Button
                 onClick={() => handleClockIn(nextSlot)}
                 disabled={!isReady}
@@ -246,8 +289,24 @@ export function ScheduleOverviewScreen() {
                   isReady ? 'bg-green-600 hover:bg-green-700' : ''
                 }`}
               >
-                {isReady ? '🚀 Clock In for Posting' : '⏱️ Wait for Scheduled Time'}
+                {isReady 
+                  ? `✓ I Just Made ${postLabel} Post of ${shift.charAt(0).toUpperCase() + shift.slice(1)} Shift` 
+                  : '⏱️ Wait for Scheduled Time'}
               </Button>
+              
+              {/* Next post countdown */}
+              {postNumberInShift < shiftPostCount && (
+                <p className="text-sm text-gray-600 mt-4">
+                  After completing interactions, your next post for this account is in{' '}
+                  {upcomingSlots
+                    .filter((s) => s.accountId === nextSlot.accountId && s.id !== nextSlot.id)
+                    .slice(0, 1)
+                    .map((s) => {
+                      const mins = getMinutesUntil(s.scheduledTimeUTC);
+                      return <span key={s.id} className="font-bold">{formatCountdown(mins)}</span>;
+                    })}
+                </p>
+              )}
             </div>
           </Card>
         )}
@@ -305,6 +364,14 @@ export function ScheduleOverviewScreen() {
           }}
           platform={selectedSlot.platform}
           onSubmit={handleChecklistSubmit}
+          postLabel={(() => {
+            const info = getAccountInfo(selectedSlot);
+            return info.postNumberInShift === 1 ? 'First' : 
+                   info.postNumberInShift === 2 ? 'Second' : 
+                   info.postNumberInShift === 3 ? 'Third' : 
+                   `${info.postNumberInShift}th`;
+          })()}
+          shift={getAccountInfo(selectedSlot).shift}
         />
       )}
 
