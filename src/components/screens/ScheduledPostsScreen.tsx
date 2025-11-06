@@ -52,26 +52,6 @@ export function ScheduledPostsScreen() {
   morningSlots.sort((a, b) => a.scheduledTimeUTC.localeCompare(b.scheduledTimeUTC));
   eveningSlots.sort((a, b) => a.scheduledTimeUTC.localeCompare(b.scheduledTimeUTC));
 
-  // Calculate waiting time between consecutive posts in a shift
-  const calculateWaitTime = (slots: DailyPlanSlot[], index: number): string => {
-    if (index === 0) return 'Start of shift';
-    
-    const prevSlot = slots[index - 1];
-    const currentSlot = slots[index];
-    
-    const prevTime = new Date(prevSlot.scheduledTimeUTC).getTime();
-    const currentTime = new Date(currentSlot.scheduledTimeUTC).getTime();
-    
-    const diffMinutes = Math.round((currentTime - prevTime) / 1000 / 60);
-    
-    if (diffMinutes < 60) {
-      return `${diffMinutes} minutes after previous`;
-    } else {
-      const hours = Math.floor(diffMinutes / 60);
-      const minutes = diffMinutes % 60;
-      return minutes > 0 ? `${hours}h ${minutes}m after previous` : `${hours}h after previous`;
-    }
-  };
 
   const renderShiftTable = (slots: DailyPlanSlot[], shiftName: string) => {
     if (slots.length === 0) {
@@ -90,13 +70,13 @@ export function ScheduledPostsScreen() {
               <th className="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
               <th className="text-left py-3 px-4 font-semibold text-gray-700">Platform</th>
               <th className="text-left py-3 px-4 font-semibold text-gray-700">Account</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">Creator Time</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">Your Time</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">Wait Time</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">Recommended Time</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">Actual Post Time</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">Timing</th>
             </tr>
           </thead>
           <tbody>
-            {slots.map((slot, index) => {
+            {slots.map((slot) => {
               const account = state.accounts.find(a => a.id === slot.accountId);
               const creator = state.creators.find(c => c.id === account?.creatorId);
               if (!account || !creator) return null;
@@ -105,6 +85,27 @@ export function ScheduledPostsScreen() {
               const accountIndex = platformAccounts.findIndex(a => a.id === slot.accountId) + 1;
 
               const isPosted = slot.status === 'posted';
+              
+              // Find the actual post log if posted
+              const postLog = isPosted && slot.postLogId 
+                ? state.postLogs.find(log => log.id === slot.postLogId)
+                : null;
+              
+              // Calculate timing difference if posted
+              let timingInfo = { text: '-', color: 'text-gray-400' };
+              if (postLog) {
+                const scheduledTime = new Date(slot.scheduledTimeUTC);
+                const actualTime = new Date(postLog.timestampUTC);
+                const diffMinutes = Math.round((actualTime.getTime() - scheduledTime.getTime()) / 1000 / 60);
+                
+                if (diffMinutes >= -15 && diffMinutes <= 15) {
+                  timingInfo = { text: '🎯 Perfect', color: 'text-green-600 font-bold' };
+                } else if (diffMinutes < -15) {
+                  timingInfo = { text: `⚠️ ${Math.abs(diffMinutes)}min early`, color: 'text-amber-600 font-semibold' };
+                } else {
+                  timingInfo = { text: `⚠️ ${diffMinutes}min late`, color: 'text-red-600 font-semibold' };
+                }
+              }
 
               return (
                 <tr key={slot.id} className={`border-b border-gray-100 hover:bg-gray-50 ${isPosted ? 'bg-green-50' : ''}`}>
@@ -137,20 +138,28 @@ export function ScheduledPostsScreen() {
                         {slot.scheduledTimeCreatorTZ}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500">{creator.timezone.split('/')[1]}</p>
+                    <p className="text-xs text-gray-500">{creator.timezone.split('/')[1]} (Recommended)</p>
                   </td>
                   <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-gray-400" />
-                      <span className="font-mono font-semibold text-gray-900">
-                        {slot.scheduledTimeUserTZ}
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-500">{state.userSettings?.userTimezone.split('/')[1]}</p>
+                    {postLog ? (
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-green-600" />
+                          <span className="font-mono font-semibold text-green-900">
+                            {postLog.timestampCreatorTZ}
+                          </span>
+                        </div>
+                        <p className="text-xs text-green-600">Posted successfully</p>
+                      </div>
+                    ) : (
+                      <div className="text-gray-400 text-sm">
+                        Not posted yet
+                      </div>
+                    )}
                   </td>
                   <td className="py-3 px-4">
-                    <span className="text-sm text-gray-600 font-medium">
-                      {calculateWaitTime(slots, index)}
+                    <span className={`text-sm font-medium ${timingInfo.color}`}>
+                      {timingInfo.text}
                     </span>
                   </td>
                 </tr>

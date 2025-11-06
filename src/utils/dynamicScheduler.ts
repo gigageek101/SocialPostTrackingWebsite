@@ -22,11 +22,14 @@ export interface RecommendedPost {
   recommendedTimeUserTZ: string;
   shift: 'morning' | 'evening';
   postNumber: number; // 1, 2, 3, etc. within the shift
-  isReady: boolean; // Can post now (cooldown passed)
+  isReady: boolean; // Past recommended time
   isTooEarly: boolean;
   isPerfectTime: boolean;
   isTooLate: boolean;
   basedOnPreviousPost: boolean; // True if calculated from previous post, false if using base time
+  minutesUntilRecommended: number; // Minutes until recommended time (negative if past)
+  isDuringCooldown: boolean; // True if posting before cooldown period ends
+  cooldownEndsInMinutes?: number; // Minutes until cooldown ends (if applicable)
 }
 
 /**
@@ -66,6 +69,8 @@ export function getNextRecommendedPost(
   // Calculate recommended time
   let recommendedTimeUTC: string;
   let basedOnPreviousPost = false;
+  let isDuringCooldown = false;
+  let cooldownEndsInMinutes: number | undefined = undefined;
   
   if (shiftPosts.length === 0) {
     // First post of shift - use base time
@@ -76,17 +81,27 @@ export function getNextRecommendedPost(
     const cooldown = COOLDOWN_MINUTES[platform];
     recommendedTimeUTC = addMinutesTime(lastPost.timestampUTC, cooldown);
     basedOnPreviousPost = true;
+    
+    // Check if we're still in cooldown period
+    const now = new Date();
+    const lastPostTime = new Date(lastPost.timestampUTC);
+    const minutesSinceLastPost = Math.round((now.getTime() - lastPostTime.getTime()) / 1000 / 60);
+    
+    if (minutesSinceLastPost < cooldown) {
+      isDuringCooldown = true;
+      cooldownEndsInMinutes = cooldown - minutesSinceLastPost;
+    }
   }
   
   // Check timing status
   const now = new Date();
   const recommendedDate = new Date(recommendedTimeUTC);
-  const minutesUntil = Math.round((recommendedDate.getTime() - now.getTime()) / 1000 / 60);
+  const minutesUntilRecommended = Math.round((recommendedDate.getTime() - now.getTime()) / 1000 / 60);
   
-  const isReady = minutesUntil <= 0; // Past recommended time
-  const isTooEarly = minutesUntil > 15; // More than 15 min early
-  const isPerfectTime = minutesUntil >= -15 && minutesUntil <= 15; // Within ±15 min
-  const isTooLate = minutesUntil < -15; // More than 15 min late
+  const isReady = minutesUntilRecommended <= 0; // Past recommended time
+  const isTooEarly = minutesUntilRecommended > 15; // More than 15 min early
+  const isPerfectTime = minutesUntilRecommended >= -15 && minutesUntilRecommended <= 15; // Within ±15 min
+  const isTooLate = minutesUntilRecommended < -15; // More than 15 min late
   
   return {
     accountId: account.id,
@@ -101,6 +116,9 @@ export function getNextRecommendedPost(
     isPerfectTime,
     isTooLate,
     basedOnPreviousPost,
+    minutesUntilRecommended,
+    isDuringCooldown,
+    cooldownEndsInMinutes,
   };
 }
 

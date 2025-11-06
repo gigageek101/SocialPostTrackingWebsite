@@ -7,7 +7,7 @@ import { Clock, TrendingUp, CheckCircle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ChecklistState } from '../../types';
 import { format } from 'date-fns';
-import { PLATFORM_NAMES } from '../../constants/platforms';
+import { PLATFORM_NAMES, COOLDOWN_MINUTES } from '../../constants/platforms';
 import { getAllRecommendedPosts, RecommendedPost } from '../../utils/dynamicScheduler';
 import { formatCountdown, getMinutesUntil } from '../../utils/timezone';
 
@@ -83,31 +83,44 @@ export function ScheduleOverviewScreen() {
 
   // Get button config based on timing
   const getButtonConfig = (rec: RecommendedPost) => {
-    const creator = state.creators.find(c => 
-      c.id === state.accounts.find(a => a.id === rec.accountId)?.creatorId
-    );
+    // Priority 1: Check if during cooldown (most important warning)
+    if (rec.isDuringCooldown && rec.cooldownEndsInMinutes) {
+      return {
+        text: `⚠️ COOLDOWN WARNING: Wait ${formatCountdown(rec.cooldownEndsInMinutes)} for optimal results`,
+        className: 'bg-orange-600 hover:bg-orange-700',
+        statusColor: 'bg-orange-500',
+        isWarning: true,
+        warningMessage: `You're in the cooldown period. For best results, wait ${formatCountdown(rec.cooldownEndsInMinutes)} before posting. However, you can still post now if needed.`
+      };
+    }
     
+    // Priority 2: Perfect timing
     if (rec.isPerfectTime) {
       return {
         text: '🎯 Perfect Time! Post Now',
         className: 'bg-green-600 hover:bg-green-700',
-        statusColor: 'bg-green-500'
+        statusColor: 'bg-green-500',
+        isWarning: false
       };
-    } else if (rec.isTooEarly) {
-      const minutesUntil = getMinutesUntil(rec.recommendedTimeUTC);
+    } 
+    
+    // Priority 3: Too early
+    if (rec.isTooEarly) {
       return {
-        text: `⚠️ Too Early by ${formatCountdown(minutesUntil)} • Recommended: ${rec.recommendedTimeCreatorTZ} (${creator?.timezone.split('/')[1] || 'Creator Time'})`,
+        text: `⏰ Too Early by ${formatCountdown(rec.minutesUntilRecommended)} • Recommended: ${rec.recommendedTimeCreatorTZ}`,
         className: 'bg-amber-600 hover:bg-amber-700',
-        statusColor: 'bg-amber-500'
+        statusColor: 'bg-amber-500',
+        isWarning: false
       };
-    } else {
-      const minutesLate = Math.abs(getMinutesUntil(rec.recommendedTimeUTC));
-      return {
-        text: `⚠️ ${formatCountdown(minutesLate)} Late • Was Recommended: ${rec.recommendedTimeCreatorTZ}`,
-        className: 'bg-red-600 hover:bg-red-700',
-        statusColor: 'bg-red-500'
-      };
-    }
+    } 
+    
+    // Priority 4: Too late
+    return {
+      text: `⏱️ ${formatCountdown(Math.abs(rec.minutesUntilRecommended))} Late • Was Recommended: ${rec.recommendedTimeCreatorTZ}`,
+      className: 'bg-red-600 hover:bg-red-700',
+      statusColor: 'bg-red-500',
+      isWarning: false
+    };
   };
 
   const getOrdinal = (n: number) => {
@@ -227,7 +240,21 @@ export function ScheduleOverviewScreen() {
                   </div>
 
                   {/* Timing Status */}
-                  {nextRecommendation.isPerfectTime ? (
+                  {nextRecommendation.isDuringCooldown && nextRecommendation.cooldownEndsInMinutes ? (
+                    <div className="p-6 bg-orange-50 border-4 border-orange-300 rounded-2xl mb-6">
+                      <div className="text-sm text-orange-600 font-semibold mb-2">
+                        ⚠️ COOLDOWN PERIOD ACTIVE
+                      </div>
+                      <div className="text-3xl font-black text-orange-900">
+                        Wait {formatCountdown(nextRecommendation.cooldownEndsInMinutes)} for Best Results
+                      </div>
+                      <div className="text-sm text-orange-700 mt-3 p-3 bg-orange-100 rounded-lg">
+                        <strong>Recommendation:</strong> Posting during cooldown may reduce engagement. 
+                        The algorithm works best with {COOLDOWN_MINUTES[nextRecommendation.platform]} minutes between posts.
+                        However, you can still post now if needed - it's your choice!
+                      </div>
+                    </div>
+                  ) : nextRecommendation.isPerfectTime ? (
                     <div className="p-6 bg-green-50 border-2 border-green-200 rounded-2xl mb-6 animate-pulse">
                       <div className="text-2xl font-bold text-green-900">
                         🎯 Perfect Timing Window!
@@ -239,7 +266,7 @@ export function ScheduleOverviewScreen() {
                   ) : nextRecommendation.isTooEarly ? (
                     <div className="p-6 bg-amber-50 border-2 border-amber-200 rounded-2xl mb-6">
                       <div className="text-sm text-amber-600 font-semibold mb-2">
-                        You're {formatCountdown(getMinutesUntil(nextRecommendation.recommendedTimeUTC))} Early
+                        You're {formatCountdown(nextRecommendation.minutesUntilRecommended)} Early
                       </div>
                       <div className="text-3xl font-black text-amber-900">
                         ⏰ Not Recommended Yet
@@ -251,7 +278,7 @@ export function ScheduleOverviewScreen() {
                   ) : (
                     <div className="p-6 bg-red-50 border-2 border-red-200 rounded-2xl mb-6">
                       <div className="text-sm text-red-600 font-semibold mb-2">
-                        You're {formatCountdown(Math.abs(getMinutesUntil(nextRecommendation.recommendedTimeUTC)))} Late
+                        You're {formatCountdown(Math.abs(nextRecommendation.minutesUntilRecommended))} Late
                       </div>
                       <div className="text-3xl font-black text-red-900">
                         ⏱️ Past Recommended Time
