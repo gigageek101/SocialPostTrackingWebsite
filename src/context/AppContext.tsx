@@ -296,9 +296,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     device: string,
     profileLink?: string
   ): PlatformAccount => {
+    // CRITICAL: If user is authenticated, ALWAYS use the Supabase creator ID
+    const finalCreatorId = state.authState.isAuthenticated && state.authState.currentCreatorId
+      ? state.authState.currentCreatorId
+      : creatorId;
+    
+    console.log('🆔 Creating account with creator ID:', finalCreatorId);
+    
     const account: PlatformAccount = {
       id: generateId(),
-      creatorId,
+      creatorId: finalCreatorId,
       platform: platform as any,
       handle,
       device,
@@ -772,24 +779,75 @@ export function AppProvider({ children }: { children: ReactNode }) {
         userSettings: userSettings?.userTimezone,
       });
 
-      // Update state with Supabase data - REPLACE everything
-      setState((prev) => ({
-        ...prev,
-        authState, // Keep the auth state we just set
-        creators: creator ? [creator] : [],
-        accounts: accounts || [],
-        postLogs: postLogs || [],
-        userSettings: userSettings || prev.userSettings,
-        dailyPlans: [], // Clear daily plans, they'll regenerate
-        checklistTemplates: prev.checklistTemplates, // Keep templates
-        lastSync: getCurrentUTC(),
-      }));
+      // CRITICAL: Merge local accounts with Supabase accounts
+      // Update any local accounts to use the correct Supabase creator ID
+      setState((prev) => {
+        if (!authState.currentCreatorId) {
+          console.error('❌ No creator ID in auth state');
+          return prev;
+        }
+        
+        const supabaseAccountIds = new Set(accounts.map(a => a.id));
+        
+        // Get local accounts that aren't in Supabase yet
+        const localAccountsNotInSupabase = prev.accounts.filter(
+          a => !supabaseAccountIds.has(a.id)
+        );
+        
+        // Update local accounts to use the correct creator ID
+        const updatedLocalAccounts = localAccountsNotInSupabase.map(account => ({
+          ...account,
+          creatorId: authState.currentCreatorId!,
+        }));
+        
+        // Merge: Supabase accounts + updated local accounts
+        const mergedAccounts = [...accounts, ...updatedLocalAccounts];
+        
+        console.log('🔄 Merging accounts:', {
+          fromSupabase: accounts.length,
+          localOnly: updatedLocalAccounts.length,
+          total: mergedAccounts.length,
+        });
+        
+        return {
+          ...prev,
+          authState, // Keep the auth state we just set
+          creators: creator ? [creator] : [],
+          accounts: mergedAccounts,
+          postLogs: postLogs || [],
+          userSettings: userSettings || prev.userSettings,
+          dailyPlans: [], // Clear daily plans, they'll regenerate
+          checklistTemplates: prev.checklistTemplates, // Keep templates
+          lastSync: getCurrentUTC(),
+        };
+      });
 
       console.log('✅ Data loaded from Supabase successfully!');
       console.log('   - Creator:', creator?.name);
       console.log('   - Accounts:', accounts.length);
       console.log('   - Posts:', postLogs.length);
       console.log('   - Settings:', userSettings ? 'Yes' : 'No');
+      
+      // Sync any local accounts that weren't in Supabase
+      setState((prev) => {
+        const supabaseAccountIds = new Set(accounts.map(a => a.id));
+        const localAccountsToSync = prev.accounts.filter(a => !supabaseAccountIds.has(a.id));
+        
+        if (localAccountsToSync.length > 0) {
+          console.log(`⬆️ Syncing ${localAccountsToSync.length} local account(s) to Supabase...`);
+          
+          localAccountsToSync.forEach(async (account) => {
+            const result = await syncPlatformAccount(account);
+            if (result.error) {
+              console.error('❌ Failed to sync local account:', account.handle, result.error);
+            } else {
+              console.log('✅ Local account synced:', account.handle);
+            }
+          });
+        }
+        
+        return prev;
+      });
     }
   };
 
