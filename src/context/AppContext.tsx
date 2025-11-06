@@ -651,6 +651,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const setAuthState = async (authState: AuthState) => {
+    // First update auth state
     setState((prev) => ({
       ...prev,
       authState,
@@ -665,24 +666,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
       );
 
       if (error) {
-        console.error('Failed to load data from Supabase:', error);
+        console.error('❌ Failed to load data from Supabase:', error);
+        alert('⚠️ Failed to load your data from the cloud. Please try again.');
         return;
       }
 
-      // Update state with Supabase data
+      console.log('📦 Raw data from Supabase:', {
+        creator: creator?.name,
+        accounts: accounts.length,
+        postLogs: postLogs.length,
+        userSettings: userSettings?.userTimezone,
+      });
+
+      // Update state with Supabase data - REPLACE everything
       setState((prev) => ({
         ...prev,
-        creators: creator ? [creator] : prev.creators,
-        accounts: accounts,
-        postLogs: postLogs,
+        authState, // Keep the auth state we just set
+        creators: creator ? [creator] : [],
+        accounts: accounts || [],
+        postLogs: postLogs || [],
         userSettings: userSettings || prev.userSettings,
+        dailyPlans: [], // Clear daily plans, they'll regenerate
+        checklistTemplates: prev.checklistTemplates, // Keep templates
         lastSync: getCurrentUTC(),
       }));
 
-      console.log('✅ Data loaded from Supabase:', {
-        accounts: accounts.length,
-        postLogs: postLogs.length,
-      });
+      console.log('✅ Data loaded from Supabase successfully!');
+      console.log('   - Creator:', creator?.name);
+      console.log('   - Accounts:', accounts.length);
+      console.log('   - Posts:', postLogs.length);
+      console.log('   - Settings:', userSettings ? 'Yes' : 'No');
     }
   };
 

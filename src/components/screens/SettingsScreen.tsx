@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Select } from '../ui/Select';
-import { Settings as SettingsIcon, Download, Upload, Bell, BellOff, Trash2, CalendarX, LogOut } from 'lucide-react';
+import { Settings as SettingsIcon, Download, Upload, Bell, BellOff, Trash2, CalendarX, LogOut, RefreshCw } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { COMMON_TIMEZONES } from '../../utils/timezone';
 import { exportData, importData, clearStorage } from '../../utils/storage';
@@ -11,6 +11,7 @@ import { requestNotificationPermission } from '../../utils/helpers';
 export function SettingsScreen() {
   const { state, updateUserSettings, importData: handleImport, clearScheduleData, setAuthState, setCurrentScreen } = useApp();
   const [importing, setImporting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   if (!state.userSettings) return null;
   
@@ -93,6 +94,28 @@ export function SettingsScreen() {
       // Go to auth screen
       setCurrentScreen('auth');
     }
+  };
+
+  const handleManualSync = async () => {
+    if (!state.authState?.currentCreatorId) {
+      alert('⚠️ Not logged in!');
+      return;
+    }
+
+    setSyncing(true);
+    console.log('🔄 Manual sync requested...');
+
+    // Re-authenticate to force data reload
+    await setAuthState({
+      isAuthenticated: true,
+      currentCreatorId: state.authState.currentCreatorId,
+      currentUsername: state.authState.currentUsername,
+    });
+
+    setTimeout(() => {
+      setSyncing(false);
+      alert('✅ Data synced from cloud!');
+    }, 1000);
   };
 
   const timezoneOptions = COMMON_TIMEZONES.map((tz) => ({
@@ -217,7 +240,7 @@ export function SettingsScreen() {
 
       {/* Account Management */}
       <Card>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Account</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Account & Sync</h2>
         
         <div className="space-y-4">
           <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
@@ -228,6 +251,17 @@ export function SettingsScreen() {
               ☁️ All your data is synced to the cloud
             </p>
           </div>
+
+          <Button 
+            onClick={handleManualSync}
+            variant="secondary"
+            fullWidth
+            disabled={syncing}
+            className="flex items-center justify-center gap-2"
+          >
+            <RefreshCw className={`w-5 h-5 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Syncing...' : 'Sync from Cloud Now'}
+          </Button>
 
           <Button 
             onClick={handleLogout}
