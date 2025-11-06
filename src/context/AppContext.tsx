@@ -112,6 +112,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       id: generateId(),
       userTimezone: timezone,
       notificationsEnabled,
+      hideTimesPopup: false,
       createdAt: getCurrentUTC(),
     };
     

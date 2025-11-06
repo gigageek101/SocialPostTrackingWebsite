@@ -48,17 +48,15 @@ function AppContent() {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-6xl mx-auto">
-        <Navigation />
-        
-        <main>
-          {currentScreen === 'schedule-overview' && <ScheduleOverviewScreen />}
-          {currentScreen === 'calendar' && <CalendarScreen />}
-          {currentScreen === 'creators' && <CreatorsScreen />}
-          {currentScreen === 'settings' && <SettingsScreen />}
-        </main>
-      </div>
+    <div className="min-h-screen bg-slate-50">
+      <Navigation />
+      
+      <main>
+        {currentScreen === 'schedule-overview' && <ScheduleOverviewScreen />}
+        {currentScreen === 'calendar' && <CalendarScreen />}
+        {currentScreen === 'creators' && <CreatorsScreen />}
+        {currentScreen === 'settings' && <SettingsScreen />}
+      </main>
     </div>
   );
 }

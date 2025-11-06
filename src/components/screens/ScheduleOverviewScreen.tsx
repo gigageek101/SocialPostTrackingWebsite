@@ -1,31 +1,42 @@
 import { useState, useEffect } from 'react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { PostSlotCard } from '../PostSlotCard';
 import { PostChecklistModal } from '../PostChecklistModal';
-import { Calendar, Filter, RefreshCw, Plus } from 'lucide-react';
+import { TimesInfoModal } from '../TimesInfoModal';
+import { Clock, Info } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { Platform, DailyPlanSlot, ChecklistState } from '../../types';
+import { DailyPlanSlot, ChecklistState } from '../../types';
 import { format } from 'date-fns';
 import { PLATFORM_NAMES } from '../../constants/platforms';
+import { getMinutesUntil, formatCountdown } from '../../utils/timezone';
 
 export function ScheduleOverviewScreen() {
-  const { state, getTodayPlan, refreshDailyPlan, logPost, updateSlotStatus, setCurrentScreen } =
-    useApp();
-    
-  const [filterPlatform, setFilterPlatform] = useState<Platform | 'all'>('all');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const { state, getTodayPlan, refreshDailyPlan, logPost, setCurrentScreen } = useApp();
   const [selectedSlot, setSelectedSlot] = useState<DailyPlanSlot | null>(null);
   const [showChecklist, setShowChecklist] = useState(false);
+  const [showTimesInfo, setShowTimesInfo] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   const todayPlan = getTodayPlan();
 
   useEffect(() => {
-    // Refresh plan on mount
     refreshDailyPlan();
+    
+    // Show times popup on first load if not hidden
+    if (state.userSettings && !state.userSettings.hideTimesPopup) {
+      setShowTimesInfo(true);
+    }
   }, []);
 
-  const handlePostClick = (slot: DailyPlanSlot) => {
+  useEffect(() => {
+    // Update current time every second
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleClockIn = (slot: DailyPlanSlot) => {
     setSelectedSlot(slot);
     setShowChecklist(true);
   };
@@ -38,178 +49,177 @@ export function ScheduleOverviewScreen() {
     }
   };
 
-  const handleSkip = (slotId: string) => {
-    updateSlotStatus(slotId, 'skipped');
-  };
+  // Get next pending slot
+  const nextSlot = todayPlan?.slots
+    .filter((s) => s.status === 'pending')
+    .sort((a, b) => a.scheduledTimeUTC.localeCompare(b.scheduledTimeUTC))[0];
 
-  // Filter slots
-  const filteredSlots = todayPlan?.slots.filter((slot) => {
-    if (filterPlatform !== 'all' && slot.platform !== filterPlatform) return false;
-    if (filterStatus !== 'all' && slot.status !== filterStatus) return false;
-    return true;
-  }) || [];
-
-  // Get stats
-  const stats = {
-    total: todayPlan?.slots.length || 0,
-    posted: todayPlan?.slots.filter((s) => s.status === 'posted').length || 0,
-    pending: todayPlan?.slots.filter((s) => s.status === 'pending').length || 0,
-    cooldown: todayPlan?.slots.filter((s) => s.status === 'cooldown').length || 0,
+  // Get account info
+  const getAccountInfo = (slot: DailyPlanSlot) => {
+    const account = state.accounts.find((a) => a.id === slot.accountId);
+    const creator = state.creators.find((c) => c.id === account?.creatorId);
+    
+    // Count accounts of same platform for numbering
+    const platformAccounts = state.accounts.filter((a) => a.platform === slot.platform);
+    const accountIndex = platformAccounts.findIndex((a) => a.id === slot.accountId) + 1;
+    
+    return { account, creator, accountIndex };
   };
 
   if (!state.userSettings) return null;
 
-  return (
-    <div className="space-y-6">
-      {/* Hero Header */}
-      <Card className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <Calendar className="w-8 h-8" />
-              <h1 className="text-3xl font-bold">Today's Schedule</h1>
-            </div>
-            <p className="text-white/90 text-lg">
-              {format(new Date(), 'EEEE, MMMM d, yyyy')}
-            </p>
-          </div>
-          
-          <div className="text-right">
-            <div className="text-4xl font-bold">
-              {stats.posted}/{stats.total}
-            </div>
-            <p className="text-white/90">Posts Completed</p>
-          </div>
-        </div>
-      </Card>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-blue-50 border-blue-200 border">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-blue-600">{stats.total}</div>
-            <p className="text-sm text-blue-900 mt-1">Total Scheduled</p>
-          </div>
-        </Card>
-        
-        <Card className="bg-green-50 border-green-200 border">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-green-600">{stats.posted}</div>
-            <p className="text-sm text-green-900 mt-1">Posted</p>
-          </div>
-        </Card>
-        
-        <Card className="bg-amber-50 border-amber-200 border">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-amber-600">{stats.cooldown}</div>
-            <p className="text-sm text-amber-900 mt-1">On Cooldown</p>
-          </div>
-        </Card>
-        
-        <Card className="bg-purple-50 border-purple-200 border">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-purple-600">{stats.pending}</div>
-            <p className="text-sm text-purple-900 mt-1">Pending</p>
-          </div>
+  if (state.accounts.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="max-w-md text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">No Accounts Yet</h2>
+          <p className="text-gray-600 mb-6">
+            Add creators and their accounts to start posting
+          </p>
+          <Button onClick={() => setCurrentScreen('creators')} size="lg">
+            Add Accounts
+          </Button>
         </Card>
       </div>
+    );
+  }
 
-      {/* Filters and Actions */}
-      <Card>
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Filter className="w-5 h-5 text-gray-600" />
-            <span className="font-medium text-gray-700">Filters:</span>
-          </div>
-          
-          <select
-            value={filterPlatform}
-            onChange={(e) => setFilterPlatform(e.target.value as any)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus-ring"
+  if (!nextSlot) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="max-w-md text-center">
+          <h2 className="text-2xl font-bold text-green-600 mb-4">All Done! 🎉</h2>
+          <p className="text-gray-600">
+            You've completed all scheduled posts for today.
+          </p>
+        </Card>
+      </div>
+    );
+  }
+
+  const { account, creator, accountIndex } = getAccountInfo(nextSlot);
+  if (!account || !creator) return null;
+
+  const minutesUntil = getMinutesUntil(nextSlot.scheduledTimeUTC);
+  const isReady = minutesUntil <= 0;
+  const platformName = PLATFORM_NAMES[nextSlot.platform];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="max-w-3xl mx-auto py-8">
+        {/* Info Button */}
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={() => setShowTimesInfo(true)}
+            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-white rounded-lg transition-all"
           >
-            <option value="all">All Platforms</option>
-            {Object.entries(PLATFORM_NAMES).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-          
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus-ring"
-          >
-            <option value="all">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="posted">Posted</option>
-            <option value="cooldown">Cooldown</option>
-            <option value="skipped">Skipped</option>
-          </select>
-          
-          <div className="ml-auto">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={refreshDailyPlan}
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh
-            </Button>
-          </div>
+            <Info className="w-4 h-4" />
+            View Posting Times
+          </button>
         </div>
-      </Card>
 
-      {/* Post Slots */}
-      {state.accounts.length === 0 ? (
-        <Card>
-          <div className="text-center py-12">
-            <div className="inline-flex items-center justify-center p-4 bg-gray-100 rounded-full mb-4">
-              <Plus className="w-12 h-12 text-gray-400" />
+        {/* Main Card */}
+        <Card className="shadow-2xl border-4 border-white">
+          {/* Current Time Display */}
+          <div className="text-center mb-8 pb-8 border-b-2 border-gray-100">
+            <div className="inline-flex items-center gap-2 text-sm text-gray-500 mb-2">
+              <Clock className="w-4 h-4" />
+              <span>Current Time</span>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              No Accounts Added Yet
-            </h3>
-            <p className="text-gray-600 mb-4">
-              Add creators and their accounts to start scheduling posts
-            </p>
-            <Button onClick={() => setCurrentScreen('creators')}>
-              <Plus className="w-5 h-5 mr-2" />
-              Add Creators & Accounts
-            </Button>
+            <div className="text-6xl font-bold text-gray-900 mb-2">
+              {format(currentTime, 'HH:mm:ss')}
+            </div>
+            <div className="text-lg text-gray-600">
+              {format(currentTime, 'EEEE, MMMM d, yyyy')}
+            </div>
           </div>
-        </Card>
-      ) : filteredSlots.length === 0 ? (
-        <Card>
-          <div className="text-center py-12">
-            <p className="text-gray-600">No posts match your filters</p>
-          </div>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {filteredSlots.map((slot) => {
-            const account = state.accounts.find((a) => a.id === slot.accountId);
-            const creator = state.creators.find(
-              (c) => c.id === account?.creatorId
-            );
-            
-            if (!account || !creator) return null;
-            
-            return (
-              <PostSlotCard
-                key={slot.id}
-                slot={slot}
-                account={account}
-                creator={creator}
-                onPost={() => handlePostClick(slot)}
-                onSkip={() => handleSkip(slot.id)}
-              />
-            );
-          })}
-        </div>
-      )}
 
-      {/* Checklist Modal */}
+          {/* Next Task */}
+          <div className="text-center mb-8">
+            <div className="inline-block px-6 py-2 bg-blue-100 text-blue-900 rounded-full text-sm font-semibold mb-4">
+              NEXT POST
+            </div>
+            
+            <h1 className="text-5xl font-black text-gray-900 mb-2">
+              {platformName} {accountIndex}
+            </h1>
+            
+            <p className="text-xl text-gray-600 mb-6">
+              {creator.name}
+            </p>
+
+            {/* Time Info */}
+            <div className="grid grid-cols-2 gap-6 max-w-lg mx-auto mb-8">
+              <div className="p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl">
+                <div className="text-sm text-blue-600 font-semibold mb-2">Creator Time</div>
+                <div className="text-3xl font-bold text-blue-900">
+                  {nextSlot.scheduledTimeCreatorTZ}
+                </div>
+                <div className="text-xs text-blue-600 mt-1">{creator.timezone.split('/')[1]}</div>
+              </div>
+              
+              <div className="p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-2xl">
+                <div className="text-sm text-green-600 font-semibold mb-2">Your Time</div>
+                <div className="text-3xl font-bold text-green-900">
+                  {nextSlot.scheduledTimeUserTZ}
+                </div>
+                <div className="text-xs text-green-600 mt-1">{state.userSettings.userTimezone.split('/')[1]}</div>
+              </div>
+            </div>
+
+            {/* Countdown or Ready */}
+            {!isReady ? (
+              <div className="p-6 bg-amber-50 border-2 border-amber-200 rounded-2xl mb-6">
+                <div className="text-sm text-amber-600 font-semibold mb-2">Time Until Post</div>
+                <div className="text-5xl font-black text-amber-900">
+                  {formatCountdown(minutesUntil)}
+                </div>
+              </div>
+            ) : (
+              <div className="p-6 bg-green-50 border-2 border-green-200 rounded-2xl mb-6 animate-pulse">
+                <div className="text-2xl font-bold text-green-900">
+                  ✓ Ready to Post Now!
+                </div>
+              </div>
+            )}
+
+            {/* Clock In Button */}
+            <Button
+              onClick={() => handleClockIn(nextSlot)}
+              disabled={!isReady}
+              size="lg"
+              className="text-2xl px-12 py-6 rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all"
+            >
+              {isReady ? '🚀 Clock In for Posting' : '⏱️ Wait for Scheduled Time'}
+            </Button>
+
+            {!isReady && (
+              <p className="text-sm text-gray-500 mt-4">
+                The clock-in button will activate at the scheduled time
+              </p>
+            )}
+          </div>
+        </Card>
+
+        {/* Stats Footer */}
+        <div className="mt-6 flex justify-center gap-6 text-center">
+          <div>
+            <div className="text-3xl font-bold text-gray-900">
+              {todayPlan?.slots.filter((s) => s.status === 'posted').length || 0}
+            </div>
+            <div className="text-sm text-gray-600">Completed Today</div>
+          </div>
+          <div className="w-px bg-gray-300" />
+          <div>
+            <div className="text-3xl font-bold text-gray-900">
+              {todayPlan?.slots.filter((s) => s.status === 'pending').length || 0}
+            </div>
+            <div className="text-sm text-gray-600">Remaining</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Modals */}
       {selectedSlot && (
         <PostChecklistModal
           isOpen={showChecklist}
@@ -221,7 +231,11 @@ export function ScheduleOverviewScreen() {
           onSubmit={handleChecklistSubmit}
         />
       )}
+
+      <TimesInfoModal
+        isOpen={showTimesInfo}
+        onClose={() => setShowTimesInfo(false)}
+      />
     </div>
   );
 }
-

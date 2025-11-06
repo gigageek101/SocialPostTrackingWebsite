@@ -8,6 +8,7 @@ export interface UserSettings {
   id: string;
   userTimezone: string;
   notificationsEnabled: boolean;
+  hideTimesPopup: boolean;
   createdAt: string;
 }
 

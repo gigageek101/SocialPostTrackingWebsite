@@ -13,26 +13,28 @@ export function Navigation() {
   ];
 
   return (
-    <nav className="bg-white shadow-lg rounded-xl p-2 mb-6">
-      <div className="flex justify-around items-center">
-        {navItems.map((item) => {
-          const isActive = currentScreen === item.screen;
-          
-          return (
-            <button
-              key={item.screen}
-              onClick={() => setCurrentScreen(item.screen)}
-              className={`flex flex-col items-center gap-1 px-6 py-3 rounded-lg smooth-transition focus-ring ${
-                isActive
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              {item.icon}
-              <span className="text-sm font-medium">{item.label}</span>
-            </button>
-          );
-        })}
+    <nav className="bg-white shadow-sm border-b border-gray-200">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="flex justify-center items-center gap-2">
+          {navItems.map((item) => {
+            const isActive = currentScreen === item.screen;
+            
+            return (
+              <button
+                key={item.screen}
+                onClick={() => setCurrentScreen(item.screen)}
+                className={`flex flex-col items-center gap-1 px-8 py-4 smooth-transition focus-ring border-b-4 ${
+                  isActive
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-400 hover:text-gray-600 hover:border-gray-200'
+                }`}
+              >
+                {item.icon}
+                <span className="text-xs font-semibold uppercase tracking-wide">{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );
