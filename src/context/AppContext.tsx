@@ -105,13 +105,67 @@ export function AppProvider({ children }: { children: ReactNode }) {
     saveToStorage(state);
   }, [state]);
 
-  // Auto-sync: Poll for changes every 5 seconds when logged in
-  // DISABLED: Auto-sync polling was causing data loss when editing captions
-  // Immediate sync operations handle real-time updates
-  // Manual "Sync from Cloud" button available in Settings for pulling updates
+  // Smart auto-sync: Poll for changes and MERGE intelligently (never replace/delete)
+  useEffect(() => {
+    if (!state.authState?.isAuthenticated || !state.authState?.currentCreatorId) {
+      return;
+    }
 
-  // DISABLED: Sync on app focus was also causing data loss
-  // Use manual "Sync from Cloud" button in Settings to pull updates from other devices
+    const smartSync = async () => {
+      const { creator, accounts, postLogs, userSettings } = await fetchCreatorData(
+        state.authState.currentCreatorId!
+      );
+
+      setState((prev) => {
+        // Smart merge accounts: Keep all local accounts, add new ones from server
+        const localAccountIds = new Set(prev.accounts.map(a => a.id));
+        
+        // Merge accounts intelligently
+        const mergedAccounts = prev.accounts.map(localAccount => {
+          const serverAccount = accounts.find(a => a.id === localAccount.id);
+          if (serverAccount) {
+            // If server has this account, check which is newer
+            // For captions, MERGE them (keep all local + add new server ones)
+            const localCaptionIds = new Set((localAccount.captions || []).map(c => c.id));
+            const serverCaptions = serverAccount.captions || [];
+            const newServerCaptions = serverCaptions.filter(c => !localCaptionIds.has(c.id));
+            
+            return {
+              ...localAccount,
+              captions: [...(localAccount.captions || []), ...newServerCaptions]
+            };
+          }
+          return localAccount;
+        });
+        
+        // Add accounts that only exist on server
+        const newServerAccounts = accounts.filter(a => !localAccountIds.has(a.id));
+        const finalAccounts = [...mergedAccounts, ...newServerAccounts];
+        
+        // Smart merge posts: Keep all local posts, add new ones from server
+        const localPostIds = new Set(prev.postLogs.map(p => p.id));
+        const newServerPosts = postLogs.filter(p => !localPostIds.has(p.id));
+        const finalPosts = [...prev.postLogs, ...newServerPosts];
+        
+        return {
+          ...prev,
+          creators: creator ? [creator] : prev.creators,
+          accounts: finalAccounts,
+          postLogs: finalPosts,
+          userSettings: userSettings || prev.userSettings,
+          lastSync: getCurrentUTC(),
+        };
+      });
+    };
+
+    // Sync every 3 seconds
+    const pollInterval = setInterval(smartSync, 3000);
+    
+    // Initial sync
+    smartSync();
+
+    return () => clearInterval(pollInterval);
+  }, [state.authState?.isAuthenticated, state.authState?.currentCreatorId]);
 
   // Check and refresh daily plan on mount and daily
   useEffect(() => {
