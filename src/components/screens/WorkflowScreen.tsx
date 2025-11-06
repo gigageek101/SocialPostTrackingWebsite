@@ -22,7 +22,7 @@ export function WorkflowScreen() {
   const location = userTimezone.split('/')[1]?.replace(/_/g, ' ') || userTimezone;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-3 sm:p-4 pb-24 sm:pb-4">
       <div className="max-w-4xl mx-auto py-8">
         {/* Personalized Header */}
         <Card className="shadow-xl mb-8 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">

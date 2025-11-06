@@ -54,7 +54,7 @@ function AppContent() {
     <div className="min-h-screen bg-slate-50">
       <Navigation />
       
-      <main>
+      <main className="min-h-screen pb-24 sm:pb-0">
         {currentScreen === 'schedule-overview' && <ScheduleOverviewScreen />}
         {currentScreen === 'scheduled-posts' && <ScheduledPostsScreen />}
         {currentScreen === 'content' && <ContentScreen />}

@@ -285,7 +285,7 @@ export function ScheduledPostsScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-3 sm:p-4 pb-24 sm:pb-4">
       <div className="max-w-6xl mx-auto py-8">
         {/* Header */}
         <div className="mb-8 text-center">

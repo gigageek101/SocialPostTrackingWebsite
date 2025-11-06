@@ -84,7 +84,7 @@ export function SettingsScreen() {
   }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-3 sm:p-6">
       {/* Header */}
       <div className="flex items-center gap-3">
         <SettingsIcon className="w-8 h-8 text-white" />
