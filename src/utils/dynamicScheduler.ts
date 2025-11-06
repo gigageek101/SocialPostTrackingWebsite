@@ -150,8 +150,22 @@ export function getAllRecommendedPosts(
     }
   }
   
-  // Sort by recommended time
-  recommendations.sort((a, b) => a.recommendedTimeUTC.localeCompare(b.recommendedTimeUTC));
+  // Sort by availability first, then by recommended time
+  // Priority: Posts without cooldown > Posts in cooldown
+  recommendations.sort((a, b) => {
+    // First priority: Not in cooldown
+    if (a.isDuringCooldown !== b.isDuringCooldown) {
+      return a.isDuringCooldown ? 1 : -1; // Not in cooldown comes first
+    }
+    
+    // Second priority: Ready now (past recommended time)
+    if (a.isReady !== b.isReady) {
+      return a.isReady ? -1 : 1; // Ready posts come first
+    }
+    
+    // Third priority: Earliest recommended time
+    return a.recommendedTimeUTC.localeCompare(b.recommendedTimeUTC);
+  });
   
   return recommendations;
 }
