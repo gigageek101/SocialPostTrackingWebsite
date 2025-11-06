@@ -9,6 +9,7 @@ import {
 import {
   PLATFORM_BASE_TIMES,
   COOLDOWN_MINUTES,
+  US_TIMEZONE,
 } from '../constants/platforms';
 import {
   formatInTimezone,
@@ -37,7 +38,7 @@ export interface RecommendedPost {
  */
 export function getNextRecommendedPost(
   account: PlatformAccount,
-  creator: Creator,
+  _creator: Creator,
   userSettings: UserSettings,
   shift: 'morning' | 'evening',
   todayPosts: PostLogEntry[]
@@ -73,8 +74,8 @@ export function getNextRecommendedPost(
   let cooldownEndsInMinutes: number | undefined = undefined;
   
   if (shiftPosts.length === 0) {
-    // First post of shift - use base time
-    recommendedTimeUTC = getBaseTimeForShift(platform, shift, creator.timezone);
+    // First post of shift - use base time (always US timezone)
+    recommendedTimeUTC = getBaseTimeForShift(platform, shift, US_TIMEZONE);
   } else {
     // Calculate from previous post + cooldown
     const lastPost = shiftPosts[shiftPosts.length - 1];
@@ -107,7 +108,7 @@ export function getNextRecommendedPost(
     accountId: account.id,
     platform,
     recommendedTimeUTC,
-    recommendedTimeCreatorTZ: formatInTimezone(recommendedTimeUTC, creator.timezone, false),
+    recommendedTimeCreatorTZ: formatInTimezone(recommendedTimeUTC, US_TIMEZONE, false), // Always US time
     recommendedTimeUserTZ: formatInTimezone(recommendedTimeUTC, userSettings.userTimezone, false),
     shift,
     postNumber,

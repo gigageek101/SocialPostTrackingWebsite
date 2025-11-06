@@ -234,11 +234,11 @@ export function ScheduleOverviewScreen() {
                   {/* Times Display */}
                   <div className="grid grid-cols-2 gap-4 mb-6">
                     <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl">
-                      <div className="text-xs text-purple-600 font-semibold mb-1">Creator Time</div>
+                      <div className="text-xs text-purple-600 font-semibold mb-1">US Time</div>
                       <div className="text-3xl font-black text-purple-900">
                         {nextRecommendation.recommendedTimeCreatorTZ}
                       </div>
-                      <div className="text-xs text-purple-600 mt-1">{creator.timezone.split('/')[1]}</div>
+                      <div className="text-xs text-purple-600 mt-1">Central Time</div>
                     </div>
                     <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl">
                       <div className="text-xs text-green-600 font-semibold mb-1">Your Time</div>

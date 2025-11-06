@@ -2,7 +2,8 @@ import { Platform, PlatformChecklistTemplate } from '../types';
 
 // Bangkok timezone base times (UTC+7)
 export const BANGKOK_TIMEZONE = 'Asia/Bangkok';
-export const DEFAULT_CREATOR_TIMEZONE = 'America/Chicago';
+export const DEFAULT_CREATOR_TIMEZONE = 'America/Chicago'; // US Central Time
+export const US_TIMEZONE = 'America/Chicago'; // All creators use US time
 
 export const PLATFORM_BASE_TIMES = {
   tiktok: ['05:00', '07:00', '09:00', '16:00', '18:00', '20:00'],

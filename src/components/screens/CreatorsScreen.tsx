@@ -7,7 +7,6 @@ import { Select } from '../ui/Select';
 import { PlatformIcon } from '../ui/PlatformIcon';
 import { Plus, Trash2, User } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { COMMON_TIMEZONES } from '../../utils/timezone';
 import { DEFAULT_CREATOR_TIMEZONE, PLATFORM_NAMES } from '../../constants/platforms';
 import { Platform } from '../../types';
 
@@ -61,11 +60,6 @@ export function CreatorsScreen() {
     setAccountProfileLink('');
     setShowAccountModal(false);
   };
-
-  const timezoneOptions = COMMON_TIMEZONES.map((tz) => ({
-    value: tz,
-    label: tz.replace(/_/g, ' '),
-  }));
 
   const platformOptions = Object.entries(PLATFORM_NAMES).map(([value, label]) => ({
     value,
@@ -234,16 +228,10 @@ export function CreatorsScreen() {
             onChange={(e) => setCreatorName(e.target.value)}
           />
           
-          <Select
-            label="Creator Timezone"
-            options={timezoneOptions}
-            value={creatorTimezone}
-            onChange={(e) => setCreatorTimezone(e.target.value)}
-          />
-
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <p className="text-sm text-blue-900">
-              Default timezone is Chicago (CT). This is used for Instagram and Facebook posting times.
+              <strong>📍 All times use US Central Time</strong><br/>
+              Your local time is automatically detected and displayed alongside US time.
             </p>
           </div>
 
