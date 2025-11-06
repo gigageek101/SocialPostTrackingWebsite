@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { Navigation } from './components/Navigation';
 import { AuthScreen } from './components/screens/AuthScreen';
 import { OnboardingScreen } from './components/screens/OnboardingScreen';
@@ -100,7 +101,8 @@ function AppContent() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen transition-colors duration-300" 
+         style={{ backgroundColor: 'var(--color-surface)' }}>
       <Navigation />
       
       <main className="min-h-screen pb-24 sm:pb-0">
@@ -119,9 +121,11 @@ function AppContent() {
 
 function App() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <ThemeProvider>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </ThemeProvider>
   );
 }
 

@@ -15,13 +15,20 @@ export function Button({
   className = '',
   ...props
 }: ButtonProps) {
-  const baseClasses = 'smooth-transition font-medium rounded-lg focus-ring disabled:opacity-50 disabled:cursor-not-allowed touch-target active:scale-95';
+  const baseClasses = 'transition-all duration-300 font-semibold rounded-lg focus-ring disabled:opacity-50 disabled:cursor-not-allowed touch-target active:scale-95';
   
   const variantClasses = {
-    primary: 'bg-blue-600 active:bg-blue-800 text-white shadow-md active:shadow-sm',
-    secondary: 'bg-gray-200 active:bg-gray-400 text-gray-900',
-    danger: 'bg-red-600 active:bg-red-800 text-white shadow-md active:shadow-sm',
-    ghost: 'bg-transparent active:bg-gray-200 text-gray-700',
+    primary: 'bg-[var(--color-orange)] hover:bg-[var(--color-orange-dark)] active:bg-[var(--color-orange-dark)] text-white shadow-md active:shadow-sm',
+    secondary: 'border-2 border-[var(--color-border)] hover:border-[var(--color-orange)] active:border-[var(--color-orange)]',
+    danger: 'bg-red-600 hover:bg-red-700 active:bg-red-800 text-white shadow-md active:shadow-sm',
+    ghost: 'bg-transparent hover:bg-[var(--color-surface)] active:bg-[var(--color-surface)]',
+  };
+  
+  const variantTextClasses = {
+    primary: '',
+    secondary: 'text-[var(--color-text-primary)]',
+    danger: '',
+    ghost: 'text-[var(--color-text-secondary)] hover:text-[var(--color-orange)]',
   };
   
   // Larger touch targets on mobile
@@ -35,7 +42,7 @@ export function Button({
   
   return (
     <button
-      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${widthClass} ${className}`}
+      className={`${baseClasses} ${variantClasses[variant]} ${variantTextClasses[variant]} ${sizeClasses[size]} ${widthClass} ${className}`}
       {...props}
     >
       {children}
