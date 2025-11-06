@@ -1,4 +1,4 @@
-import { Calendar, Home, Users, Settings, List } from 'lucide-react';
+import { Calendar, Home, Users, Settings, List, FileText } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Screen } from '../types';
 
@@ -8,6 +8,7 @@ export function Navigation() {
   const navItems: Array<{ screen: Screen; icon: React.ReactNode; label: string }> = [
     { screen: 'schedule-overview', icon: <Home className="w-6 h-6" />, label: 'Today' },
     { screen: 'scheduled-posts', icon: <List className="w-6 h-6" />, label: 'Schedule' },
+    { screen: 'content', icon: <FileText className="w-6 h-6" />, label: 'Content' },
     { screen: 'calendar', icon: <Calendar className="w-6 h-6" />, label: 'Calendar' },
     { screen: 'creators', icon: <Users className="w-6 h-6" />, label: 'Creators' },
     { screen: 'settings', icon: <Settings className="w-6 h-6" />, label: 'Settings' },
