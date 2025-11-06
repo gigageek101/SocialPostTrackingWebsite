@@ -88,9 +88,9 @@ export function PostChecklistModal({
         <div className="flex items-center gap-3 p-4 bg-green-50 border-2 border-green-300 rounded-lg">
           <Award className="w-6 h-6 text-green-600" />
           <div>
-            <h3 className="font-semibold text-green-900 text-lg">Post Completed!</h3>
+            <h3 className="font-semibold text-green-900 text-lg">✓ Post Logged & Cooldown Started!</h3>
             <p className="text-sm text-green-700">
-              Now complete these interactions for maximum engagement
+              Complete these interactions while your cooldown timer runs in the background
             </p>
           </div>
         </div>

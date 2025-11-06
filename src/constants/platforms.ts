@@ -54,7 +54,7 @@ export const CHECKLIST_TEMPLATES: PlatformChecklistTemplate[] = [
       },
       {
         id: 'tiktok-likes',
-        label: 'Like 5 posts after this post',
+        label: 'Like 5 posts',
         type: 'counter',
         count: 5,
         recommendedCount: 5,
@@ -76,6 +76,11 @@ export const CHECKLIST_TEMPLATES: PlatformChecklistTemplate[] = [
         label: 'View stories of target audience',
         type: 'toggle',
       },
+      {
+        id: 'tiktok-homefeed',
+        label: 'Scroll homefeed for 3 minutes (like & save content)',
+        type: 'toggle',
+      },
     ],
   },
   {
@@ -84,7 +89,7 @@ export const CHECKLIST_TEMPLATES: PlatformChecklistTemplate[] = [
     items: [
       {
         id: 'threads-text-comments',
-        label: '3 text comments after this post',
+        label: '3 text comments',
         type: 'counter',
         count: 3,
         recommendedCount: 3,
@@ -103,6 +108,11 @@ export const CHECKLIST_TEMPLATES: PlatformChecklistTemplate[] = [
         count: 3,
         recommendedCount: 3,
       },
+      {
+        id: 'threads-homefeed',
+        label: 'Scroll homefeed for 3 minutes (like & save content)',
+        type: 'toggle',
+      },
     ],
   },
   {
@@ -110,18 +120,27 @@ export const CHECKLIST_TEMPLATES: PlatformChecklistTemplate[] = [
     recommendedProtocol: 'Perfect Instagram Method',
     items: [
       {
-        id: 'ig-morning-post',
-        label: 'Morning post done',
-        type: 'toggle',
-      },
-      {
-        id: 'ig-evening-post',
-        label: 'Evening post done',
-        type: 'toggle',
-      },
-      {
         id: 'ig-story',
-        label: '1 story mandatory (daily)',
+        label: 'Post 1 story',
+        type: 'toggle',
+      },
+      {
+        id: 'ig-like-back',
+        label: 'Like back 10 likers from your post',
+        type: 'counter',
+        count: 10,
+        recommendedCount: 10,
+      },
+      {
+        id: 'ig-story-views',
+        label: 'View 20 stories',
+        type: 'counter',
+        count: 20,
+        recommendedCount: 20,
+      },
+      {
+        id: 'ig-homefeed',
+        label: 'Scroll homefeed for 3 minutes (like & save content)',
         type: 'toggle',
       },
     ],
@@ -131,23 +150,15 @@ export const CHECKLIST_TEMPLATES: PlatformChecklistTemplate[] = [
     recommendedProtocol: 'Perfect Facebook Method',
     items: [
       {
-        id: 'fb-reel-morning',
-        label: 'Reel morning',
-        type: 'toggle',
+        id: 'fb-likes',
+        label: 'Like 10 posts from target users',
+        type: 'counter',
+        count: 10,
+        recommendedCount: 10,
       },
       {
-        id: 'fb-reel-evening',
-        label: 'Reel evening',
-        type: 'toggle',
-      },
-      {
-        id: 'fb-pic-1',
-        label: 'Picture post 1',
-        type: 'toggle',
-      },
-      {
-        id: 'fb-pic-2',
-        label: 'Picture post 2',
+        id: 'fb-homefeed',
+        label: 'Scroll homefeed for 3 minutes (like & save content)',
         type: 'toggle',
       },
     ],

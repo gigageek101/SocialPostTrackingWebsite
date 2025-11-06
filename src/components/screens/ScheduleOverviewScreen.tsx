@@ -4,6 +4,7 @@ import { Card } from '../ui/Card';
 import { PostChecklistModal } from '../PostChecklistModal';
 import { TimesInfoModal } from '../TimesInfoModal';
 import { UpcomingSlotCard } from '../UpcomingSlotCard';
+import { WorkflowInfo } from '../WorkflowInfo';
 import { Clock, Info } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { DailyPlanSlot, ChecklistState } from '../../types';
@@ -64,15 +65,20 @@ export function ScheduleOverviewScreen() {
   }, [state.userSettings, todayPlan, notifiedSlots, state.accounts]);
 
   const handleClockIn = (slot: DailyPlanSlot) => {
+    // Show checklist - post will be logged with interactions
     setSelectedSlot(slot);
     setShowChecklist(true);
   };
 
   const handleChecklistSubmit = (checklistState: ChecklistState, notes: string) => {
     if (selectedSlot) {
+      // Post was already logged when button was clicked, just save checklist
       logPost(selectedSlot.id, checklistState, notes);
       setShowChecklist(false);
       setSelectedSlot(null);
+      
+      // Refresh to show next post
+      setTimeout(() => refreshDailyPlan(), 100);
     }
   };
 
@@ -166,7 +172,7 @@ export function ScheduleOverviewScreen() {
     );
   }
 
-  const { account, creator, accountIndex, shift, postNumberInShift, shiftPostCount } = getAccountInfo(nextSlot);
+  const { account, creator, accountIndex, shift, postNumberInShift } = getAccountInfo(nextSlot);
   if (!account || !creator) return null;
 
   const minutesUntil = getMinutesUntil(nextSlot.scheduledTimeUTC);
@@ -212,6 +218,9 @@ export function ScheduleOverviewScreen() {
             {format(currentTime, 'EEEE, MMMM d, yyyy')}
           </div>
         </Card>
+
+        {/* Workflow Info */}
+        <WorkflowInfo />
 
         {/* Legend */}
         <div className="flex justify-center gap-4 mb-6 text-sm">
@@ -294,19 +303,34 @@ export function ScheduleOverviewScreen() {
                   : '⏱️ Wait for Scheduled Time'}
               </Button>
               
-              {/* Next post countdown */}
-              {postNumberInShift < shiftPostCount && (
-                <p className="text-sm text-gray-600 mt-4">
-                  After completing interactions, your next post for this account is in{' '}
+              {/* Cooldown info for platforms that need it */}
+              {(nextSlot.platform === 'tiktok' || nextSlot.platform === 'threads') && (
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-blue-900">
+                    <strong>⏱️ 2-Hour Cooldown:</strong> Timer starts immediately when you click the button above.
+                    Complete your interactions while waiting for the next post window.
+                  </p>
+                </div>
+              )}
+              
+              {/* Next post info */}
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-700">
+                  <strong>Next in workflow:</strong>{' '}
                   {upcomingSlots
-                    .filter((s) => s.accountId === nextSlot.accountId && s.id !== nextSlot.id)
-                    .slice(0, 1)
+                    .slice(1, 2)
                     .map((s) => {
+                      const { accountIndex: nextIdx } = getAccountInfo(s);
+                      const nextPlatform = PLATFORM_NAMES[s.platform];
                       const mins = getMinutesUntil(s.scheduledTimeUTC);
-                      return <span key={s.id} className="font-bold">{formatCountdown(mins)}</span>;
+                      return (
+                        <span key={s.id}>
+                          {nextPlatform} {nextIdx} in <span className="font-bold">{formatCountdown(mins)}</span>
+                        </span>
+                      );
                     })}
                 </p>
-              )}
+              </div>
             </div>
           </Card>
         )}

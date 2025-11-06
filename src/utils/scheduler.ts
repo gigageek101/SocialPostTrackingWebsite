@@ -106,11 +106,20 @@ export function generateDailyPlan(
     }
   });
 
-  // Sort by base time and account index to apply staggering
+  // Sort by workflow: TikTok accounts first, then Threads, then IG, then FB
+  // Within each platform, sort by account index, then by time
+  const platformOrder = { tiktok: 1, threads: 2, instagram: 3, facebook: 4 };
+  
   scheduleEntries.sort((a, b) => {
-    const timeA = a.baseTime;
-    const timeB = b.baseTime;
-    if (timeA !== timeB) return timeA.localeCompare(timeB);
+    // First by time slot
+    const timeCompare = a.baseTime.localeCompare(b.baseTime);
+    if (timeCompare !== 0) return timeCompare;
+    
+    // Then by platform order (TikTok -> Threads -> IG -> FB)
+    const platformCompare = platformOrder[a.platform] - platformOrder[b.platform];
+    if (platformCompare !== 0) return platformCompare;
+    
+    // Then by account index within platform
     return a.accountIndex - b.accountIndex;
   });
 
