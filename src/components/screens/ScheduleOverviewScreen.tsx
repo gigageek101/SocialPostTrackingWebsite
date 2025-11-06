@@ -25,10 +25,12 @@ export function ScheduleOverviewScreen() {
     return () => clearInterval(interval);
   }, []);
   
-  // Refresh recommendations whenever state changes
+  // Force re-render when posts are logged to immediately show next recommendation
   useEffect(() => {
-    // This ensures recommendations update immediately after posting
-  }, [state.postLogs, state.accounts, state.creators]);
+    // Just having this dependency will cause the component to re-render
+    // and recalculate recommendations when postLogs changes
+    setCurrentTime(new Date());
+  }, [state.postLogs.length]);
 
   if (!state.userSettings || state.creators.length === 0 || state.accounts.length === 0) {
     return (
