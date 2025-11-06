@@ -24,8 +24,10 @@ import {
   syncUserSettings, 
   syncCreator, 
   syncPlatformAccount, 
-  syncPostLog,
-  syncCaption 
+  syncPostLog, 
+  syncCaption,
+  deleteCreatorFromSupabase,
+  deleteAccountFromSupabase
 } from '../services/supabaseService';
 
 interface AppContextType {
@@ -287,6 +289,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
       creators: prev.creators.filter((c) => c.id !== id),
       accounts: prev.accounts.filter((a) => a.creatorId !== id),
     }));
+    
+    // Delete from Supabase
+    if (state.authState.isAuthenticated) {
+      console.log('🗑️ Deleting creator from Supabase:', id);
+      deleteCreatorFromSupabase(id).then(result => {
+        if (result.error) {
+          console.error('❌ Failed to delete creator:', result.error);
+          alert(`⚠️ Failed to delete creator from cloud: ${result.error}`);
+        } else {
+          console.log('✅ Creator deleted from cloud');
+        }
+      });
+    }
   };
 
   const addAccount = (
@@ -377,6 +392,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
       ...prev,
       accounts: prev.accounts.filter((a) => a.id !== id),
     }));
+    
+    // Delete from Supabase
+    if (state.authState.isAuthenticated) {
+      console.log('🗑️ Deleting account from Supabase:', id);
+      deleteAccountFromSupabase(id).then(result => {
+        if (result.error) {
+          console.error('❌ Failed to delete account:', result.error);
+          alert(`⚠️ Failed to delete account from cloud: ${result.error}`);
+        } else {
+          console.log('✅ Account deleted from cloud');
+        }
+      });
+    }
   };
 
   const logPost = async (

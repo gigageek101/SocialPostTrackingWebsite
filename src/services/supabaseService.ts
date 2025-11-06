@@ -428,3 +428,99 @@ export async function syncCaption(caption: Caption, accountId: string): Promise<
   }
 }
 
+// ============================================
+// DELETE Functions
+// ============================================
+
+export async function deleteCreatorFromSupabase(creatorId: string): Promise<{ error: string | null }> {
+  try {
+    if (!isSupabaseConfigured()) {
+      return { error: 'Supabase not configured' };
+    }
+
+    const { error } = await supabase
+      .from('creators')
+      .delete()
+      .eq('id', creatorId);
+
+    if (error) {
+      console.error('Supabase delete error (creators):', error);
+      return { error: error.message };
+    }
+
+    console.log('✅ Creator deleted from Supabase:', creatorId);
+    return { error: null };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}
+
+export async function deleteAccountFromSupabase(accountId: string): Promise<{ error: string | null }> {
+  try {
+    if (!isSupabaseConfigured()) {
+      return { error: 'Supabase not configured' };
+    }
+
+    const { error } = await supabase
+      .from('accounts')
+      .delete()
+      .eq('id', accountId);
+
+    if (error) {
+      console.error('Supabase delete error (accounts):', error);
+      return { error: error.message };
+    }
+
+    console.log('✅ Account deleted from Supabase:', accountId);
+    return { error: null };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}
+
+export async function deleteCaptionFromSupabase(captionId: string): Promise<{ error: string | null }> {
+  try {
+    if (!isSupabaseConfigured()) {
+      return { error: 'Supabase not configured' };
+    }
+
+    const { error } = await supabase
+      .from('captions')
+      .delete()
+      .eq('id', captionId);
+
+    if (error) {
+      console.error('Supabase delete error (captions):', error);
+      return { error: error.message };
+    }
+
+    console.log('✅ Caption deleted from Supabase:', captionId);
+    return { error: null };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}
+
+export async function deletePostLogFromSupabase(postLogId: string): Promise<{ error: string | null }> {
+  try {
+    if (!isSupabaseConfigured()) {
+      return { error: 'Supabase not configured' };
+    }
+
+    const { error } = await supabase
+      .from('post_logs')
+      .delete()
+      .eq('id', postLogId);
+
+    if (error) {
+      console.error('Supabase delete error (post_logs):', error);
+      return { error: error.message };
+    }
+
+    console.log('✅ Post log deleted from Supabase:', postLogId);
+    return { error: null };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}
+
