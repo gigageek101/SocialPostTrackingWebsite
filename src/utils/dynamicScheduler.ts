@@ -50,8 +50,25 @@ export function getNextRecommendedPost(
     .filter(p => p.accountId === account.id)
     .sort((a, b) => a.timestampUTC.localeCompare(b.timestampUTC));
   
-  // Separate by shift
+  // Separate by shift - Use USER's local time from the logged post, NOT UTC!
   const shiftPosts = accountPostsToday.filter(p => {
+    // Use the timestampUserTZ which was logged at post time
+    // Parse the user time string (e.g., "Nov 6, 3:43 PM")
+    const userTimeStr = p.timestampUserTZ;
+    const isPM = userTimeStr.includes('PM');
+    const timeMatch = userTimeStr.match(/(\d+):(\d+)/);
+    
+    if (timeMatch) {
+      let hour = parseInt(timeMatch[1]);
+      if (isPM && hour !== 12) hour += 12;
+      if (!isPM && hour === 12) hour = 0;
+      
+      // Determine shift based on USER's local time (same as component logic)
+      const postShift = hour < 14 ? 'morning' : 'evening';
+      return postShift === shift;
+    }
+    
+    // Fallback to UTC if parsing fails
     const postTime = new Date(p.timestampUTC);
     const hour = postTime.getUTCHours();
     return shift === 'morning' ? hour < 14 : hour >= 14;
