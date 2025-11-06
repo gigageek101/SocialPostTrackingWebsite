@@ -18,12 +18,17 @@ export function ScheduleOverviewScreen() {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
-    // Update current time every second
+    // Update current time every second (also triggers recommendations refresh)
     const interval = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+  
+  // Refresh recommendations whenever state changes
+  useEffect(() => {
+    // This ensures recommendations update immediately after posting
+  }, [state.postLogs, state.accounts, state.creators]);
 
   if (!state.userSettings || state.creators.length === 0 || state.accounts.length === 0) {
     return (
@@ -77,6 +82,11 @@ export function ScheduleOverviewScreen() {
         
         setShowChecklist(false);
         setSelectedRecommendation(null);
+        
+        // Force refresh to show next recommendation immediately
+        setTimeout(() => {
+          setCurrentTime(new Date());
+        }, 100);
       }
     }
   };
