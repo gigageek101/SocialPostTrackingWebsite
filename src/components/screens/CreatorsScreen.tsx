@@ -11,7 +11,7 @@ import { DEFAULT_CREATOR_TIMEZONE, PLATFORM_NAMES } from '../../constants/platfo
 import { Platform } from '../../types';
 
 export function CreatorsScreen() {
-  const { state, addCreator, addAccount, deleteCreator, deleteAccount, updateCreator } = useApp();
+  const { state, addCreator, addAccount, deleteCreator, deleteAccount, updateCreator, updateAccount } = useApp();
   const [showCreatorModal, setShowCreatorModal] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [selectedCreatorId, setSelectedCreatorId] = useState<string | null>(null);
@@ -26,6 +26,7 @@ export function CreatorsScreen() {
   const [accountHandle, setAccountHandle] = useState('');
   const [accountDevice, setAccountDevice] = useState('');
   const [accountProfileLink, setAccountProfileLink] = useState('');
+  const [accountTelegramLink, setAccountTelegramLink] = useState('');
 
   const handleAddCreator = () => {
     if (!creatorName.trim()) return;
@@ -54,10 +55,17 @@ export function CreatorsScreen() {
   const handleAddAccount = () => {
     if (!selectedCreatorId || !accountHandle.trim() || !accountDevice.trim()) return;
     
-    addAccount(selectedCreatorId, accountPlatform, accountHandle, accountDevice, accountProfileLink);
+    const newAccount = addAccount(selectedCreatorId, accountPlatform, accountHandle, accountDevice, accountProfileLink);
+    
+    // Update with telegram link if provided
+    if (accountTelegramLink.trim()) {
+      updateAccount(newAccount.id, { telegramLink: accountTelegramLink });
+    }
+    
     setAccountHandle('');
     setAccountDevice('');
     setAccountProfileLink('');
+    setAccountTelegramLink('');
     setShowAccountModal(false);
   };
 
@@ -279,6 +287,13 @@ export function CreatorsScreen() {
             placeholder="https://..."
             value={accountProfileLink}
             onChange={(e) => setAccountProfileLink(e.target.value)}
+          />
+          
+          <Input
+            label="Telegram Link (Optional)"
+            placeholder="https://t.me/..."
+            value={accountTelegramLink}
+            onChange={(e) => setAccountTelegramLink(e.target.value)}
           />
 
           <div className="flex gap-3">

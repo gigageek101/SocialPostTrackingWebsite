@@ -29,7 +29,19 @@ export interface PlatformAccount {
   handle: string;
   device: string; // Which device/phone this account is on
   profileLink?: string;
+  telegramLink?: string; // Telegram channel/group for this account's posts
+  captions?: Caption[]; // Pre-written captions for this account
   overrides?: PlatformOverrides;
+  createdAt: string;
+}
+
+// Caption for posts
+export interface Caption {
+  id: string;
+  slides: string[]; // Array of slide texts
+  title: string;
+  hashtags: string;
+  used: boolean; // Track if caption has been used
   createdAt: string;
 }
 
@@ -123,6 +135,7 @@ export type Screen =
   | 'onboarding'
   | 'schedule-overview'
   | 'scheduled-posts'
+  | 'content'
   | 'calendar'
   | 'creators'
   | 'settings';
