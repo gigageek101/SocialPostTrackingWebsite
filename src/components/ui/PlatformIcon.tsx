@@ -1,4 +1,3 @@
-import { Video, MessageCircle, Instagram, Facebook } from 'lucide-react';
 import { Platform } from '../../types';
 
 interface PlatformIconProps {
@@ -7,13 +6,19 @@ interface PlatformIconProps {
 }
 
 export function PlatformIcon({ platform, className = 'w-5 h-5' }: PlatformIconProps) {
-  const icons = {
-    tiktok: <Video className={className} />,
-    threads: <MessageCircle className={className} />,
-    instagram: <Instagram className={className} />,
-    facebook: <Facebook className={className} />,
+  const iconPaths = {
+    tiktok: '/icons/tiktok.png',
+    threads: '/icons/threads.png',
+    instagram: '/icons/instagram.png',
+    facebook: '/icons/facebook.png',
   };
   
-  return icons[platform] || null;
+  return (
+    <img 
+      src={iconPaths[platform]} 
+      alt={platform}
+      className={className}
+    />
+  );
 }
 

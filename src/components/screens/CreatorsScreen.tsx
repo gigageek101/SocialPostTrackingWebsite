@@ -12,7 +12,7 @@ import { DEFAULT_CREATOR_TIMEZONE, PLATFORM_NAMES } from '../../constants/platfo
 import { Platform } from '../../types';
 
 export function CreatorsScreen() {
-  const { state, addCreator, addAccount, deleteCreator, deleteAccount } = useApp();
+  const { state, addCreator, addAccount, deleteCreator, deleteAccount, updateCreator } = useApp();
   const [showCreatorModal, setShowCreatorModal] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [selectedCreatorId, setSelectedCreatorId] = useState<string | null>(null);
@@ -20,26 +20,44 @@ export function CreatorsScreen() {
   // Creator form
   const [creatorName, setCreatorName] = useState('');
   const [creatorTimezone, setCreatorTimezone] = useState(DEFAULT_CREATOR_TIMEZONE);
+  const [creatorProfilePicture, setCreatorProfilePicture] = useState('');
   
   // Account form
   const [accountPlatform, setAccountPlatform] = useState<Platform>('tiktok');
   const [accountHandle, setAccountHandle] = useState('');
+  const [accountDevice, setAccountDevice] = useState('');
   const [accountProfileLink, setAccountProfileLink] = useState('');
 
   const handleAddCreator = () => {
     if (!creatorName.trim()) return;
     
-    addCreator(creatorName, creatorTimezone);
+    const creator = addCreator(creatorName, creatorTimezone);
+    if (creatorProfilePicture) {
+      updateCreator(creator.id, { profilePicture: creatorProfilePicture });
+    }
     setCreatorName('');
     setCreatorTimezone(DEFAULT_CREATOR_TIMEZONE);
+    setCreatorProfilePicture('');
     setShowCreatorModal(false);
   };
 
+  const handleProfilePictureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setCreatorProfilePicture(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleAddAccount = () => {
-    if (!selectedCreatorId || !accountHandle.trim()) return;
+    if (!selectedCreatorId || !accountHandle.trim() || !accountDevice.trim()) return;
     
-    addAccount(selectedCreatorId, accountPlatform, accountHandle, accountProfileLink);
+    addAccount(selectedCreatorId, accountPlatform, accountHandle, accountDevice, accountProfileLink);
     setAccountHandle('');
+    setAccountDevice('');
     setAccountProfileLink('');
     setShowAccountModal(false);
   };
@@ -93,11 +111,24 @@ export function CreatorsScreen() {
             return (
               <Card key={creator.id}>
                 <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900">{creator.name}</h3>
-                    <p className="text-sm text-gray-600">
-                      Timezone: {creator.timezone.replace(/_/g, ' ')}
-                    </p>
+                  <div className="flex items-center gap-4">
+                    {creator.profilePicture ? (
+                      <img 
+                        src={creator.profilePicture} 
+                        alt={creator.name}
+                        className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-2xl font-bold">
+                        {creator.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900">{creator.name}</h3>
+                      <p className="text-sm text-gray-600">
+                        Timezone: {creator.timezone.replace(/_/g, ' ')}
+                      </p>
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <Button
@@ -138,12 +169,13 @@ export function CreatorsScreen() {
                         className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                       >
                         <div className="flex items-center gap-3">
-                          <PlatformIcon platform={account.platform} />
+                          <PlatformIcon platform={account.platform} className="w-8 h-8" />
                           <div>
                             <p className="font-medium text-gray-900">
                               {PLATFORM_NAMES[account.platform]}
                             </p>
                             <p className="text-sm text-gray-600">{account.handle}</p>
+                            <p className="text-xs text-gray-500">📱 {account.device}</p>
                           </div>
                         </div>
                         <Button
@@ -174,6 +206,27 @@ export function CreatorsScreen() {
         title="Add Creator"
       >
         <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Profile Picture (Optional)
+            </label>
+            {creatorProfilePicture && (
+              <div className="mb-3 flex justify-center">
+                <img 
+                  src={creatorProfilePicture} 
+                  alt="Preview"
+                  className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
+                />
+              </div>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleProfilePictureUpload}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus-ring"
+            />
+          </div>
+
           <Input
             label="Creator Name"
             placeholder="Enter creator name"
@@ -224,6 +277,13 @@ export function CreatorsScreen() {
             placeholder="@username"
             value={accountHandle}
             onChange={(e) => setAccountHandle(e.target.value)}
+          />
+
+          <Input
+            label="Device"
+            placeholder="e.g., iPhone 12, Samsung S21, iPad Pro"
+            value={accountDevice}
+            onChange={(e) => setAccountDevice(e.target.value)}
           />
           
           <Input

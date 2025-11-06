@@ -30,7 +30,7 @@ interface AppContextType {
   deleteCreator: (id: string) => void;
   
   // Accounts
-  addAccount: (creatorId: string, platform: string, handle: string, profileLink?: string) => PlatformAccount;
+  addAccount: (creatorId: string, platform: string, handle: string, device: string, profileLink?: string) => PlatformAccount;
   updateAccount: (id: string, updates: Partial<PlatformAccount>) => void;
   deleteAccount: (id: string) => void;
   
@@ -161,6 +161,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     creatorId: string,
     platform: string,
     handle: string,
+    device: string,
     profileLink?: string
   ): PlatformAccount => {
     const account: PlatformAccount = {
@@ -168,6 +169,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       creatorId,
       platform: platform as any,
       handle,
+      device,
       profileLink,
       createdAt: getCurrentUTC(),
     };

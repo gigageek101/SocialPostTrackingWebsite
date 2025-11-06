@@ -17,6 +17,7 @@ export interface Creator {
   id: string;
   name: string;
   timezone: string; // Default: America/Chicago
+  profilePicture?: string; // Base64 encoded image
   createdAt: string;
 }
 
@@ -26,6 +27,7 @@ export interface PlatformAccount {
   creatorId: string;
   platform: Platform;
   handle: string;
+  device: string; // Which device/phone this account is on
   profileLink?: string;
   overrides?: PlatformOverrides;
   createdAt: string;

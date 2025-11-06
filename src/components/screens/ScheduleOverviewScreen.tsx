@@ -246,13 +246,34 @@ export function ScheduleOverviewScreen() {
                 NEXT POST
               </div>
               
-              <h1 className="text-5xl font-black text-gray-900 mb-2">
-                {platformName} {accountIndex}
-              </h1>
-              
-              <p className="text-xl text-gray-600 mb-6">
-                {creator.name}
-              </p>
+              <div className="flex items-center justify-center gap-4 mb-4">
+                {creator.profilePicture && (
+                  <img 
+                    src={creator.profilePicture} 
+                    alt={creator.name}
+                    className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
+                  />
+                )}
+                <div>
+                  <h1 className="text-5xl font-black text-gray-900">
+                    {platformName} {accountIndex}
+                  </h1>
+                  <p className="text-xl text-gray-600">
+                    {creator.name}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-center gap-4 mb-6 text-sm">
+                <div className="px-4 py-2 bg-gray-100 rounded-lg">
+                  <span className="text-gray-600">Username: </span>
+                  <span className="font-semibold text-gray-900">{account.handle}</span>
+                </div>
+                <div className="px-4 py-2 bg-blue-100 rounded-lg">
+                  <span className="text-blue-600">📱 </span>
+                  <span className="font-semibold text-blue-900">{account.device}</span>
+                </div>
+              </div>
 
               {/* Time Info */}
               <div className="grid grid-cols-2 gap-6 max-w-lg mx-auto mb-8">
