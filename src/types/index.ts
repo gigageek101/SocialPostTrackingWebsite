@@ -137,6 +137,7 @@ export type Screen =
   | 'schedule-overview'
   | 'scheduled-posts'
   | 'content'
+  | 'workflow'
   | 'calendar'
   | 'creators'
   | 'settings';
