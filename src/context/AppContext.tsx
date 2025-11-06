@@ -313,9 +313,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     
     // Sync to Supabase
     if (state.authState.isAuthenticated) {
-      syncPlatformAccount(account).catch(err => 
-        console.error('Failed to sync account:', err)
-      );
+      console.log('⬆️ Syncing new account to Supabase:', account.handle);
+      syncPlatformAccount(account).then(result => {
+        if (result.error) {
+          console.error('❌ Failed to sync account:', result.error);
+          alert(`⚠️ Failed to sync account: ${result.error}`);
+        } else {
+          console.log('✅ Account synced to cloud:', account.handle);
+        }
+      });
     }
     
     // Refresh daily plan when new account is added
@@ -334,16 +340,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (state.authState.isAuthenticated) {
         const updatedAccount = updatedAccounts.find(a => a.id === id);
         if (updatedAccount) {
-          syncPlatformAccount(updatedAccount).catch(err => 
-            console.error('Failed to sync account update:', err)
-          );
+          console.log('⬆️ Syncing account update to Supabase:', updatedAccount.handle);
+          syncPlatformAccount(updatedAccount).then(result => {
+            if (result.error) {
+              console.error('❌ Failed to sync account update:', result.error);
+            } else {
+              console.log('✅ Account update synced');
+            }
+          });
           
           // Sync captions if they were updated
           if (updates.captions && updatedAccount.captions) {
             updatedAccount.captions.forEach(caption => {
-              syncCaption(caption, updatedAccount.id).catch(err =>
-                console.error('Failed to sync caption:', err)
-              );
+              syncCaption(caption, updatedAccount.id);
             });
           }
         }
@@ -572,21 +581,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     // Sync post log to Supabase
     if (state.authState.isAuthenticated) {
-      // Find the newly created post log from the updated state
-      const newPostLog = state.postLogs[state.postLogs.length - 1];
-      if (newPostLog) {
-        syncPostLog(newPostLog).catch(err => 
-          console.error('Failed to sync post log:', err)
-        );
-      }
+      // Get the most recent post from the updated state
+      setTimeout(async () => {
+        const currentState = state;
+        const newPostLog = currentState.postLogs[currentState.postLogs.length - 1];
+        if (newPostLog) {
+          console.log('⬆️ Syncing post to Supabase:', newPostLog.platform);
+          const result = await syncPostLog(newPostLog);
+          if (result.error) {
+            console.error('❌ Failed to sync post log:', result.error);
+            alert(`⚠️ Failed to sync post: ${result.error}`);
+          } else {
+            console.log('✅ Post synced to cloud');
+          }
+        }
 
-      // If captions were marked as used, sync the updated account
-      const updatedAccount = state.accounts.find(a => a.id === (accountId || finalAccount?.id));
-      if (updatedAccount) {
-        syncPlatformAccount(updatedAccount).catch(err =>
-          console.error('Failed to sync account after caption update:', err)
-        );
-      }
+        // If captions were marked as used, sync the updated account
+        const updatedAccount = currentState.accounts.find(a => a.id === (accountId || finalAccount?.id));
+        if (updatedAccount) {
+          console.log('⬆️ Syncing caption status to Supabase');
+          await syncPlatformAccount(updatedAccount);
+        }
+      }, 100);
     }
   };
 
