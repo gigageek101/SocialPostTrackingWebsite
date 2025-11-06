@@ -102,13 +102,18 @@ export async function syncCreatorData(creatorId: string) {
       return { data: null, error: 'Supabase not configured' };
     }
 
+    // First get accounts to query post_logs properly
+    const accountsRes = await supabase.from('accounts').select('*').eq('creator_id', creatorId);
+    const accountIds = (accountsRes.data || []).map(a => a.id);
+    
     // Fetch all related data
-    const [creatorsRes, accountsRes, captionsRes, postLogsRes, settingsRes] = await Promise.all([
+    const [creatorsRes, captionsRes, postLogsRes, settingsRes] = await Promise.all([
       supabase.from('creators').select('*').eq('id', creatorId).single(),
-      supabase.from('accounts').select('*').eq('creator_id', creatorId),
       supabase.from('captions').select('*, accounts!inner(creator_id)').eq('accounts.creator_id', creatorId),
-      supabase.from('post_logs').select('*').eq('creator_id', creatorId),
-      supabase.from('user_settings').select('*').eq('creator_id', creatorId).single(),
+      accountIds.length > 0 
+        ? supabase.from('post_logs').select('*').in('account_id', accountIds)
+        : Promise.resolve({ data: [], error: null }),
+      supabase.from('user_settings').select('*').eq('creator_id', creatorId).maybeSingle(),
     ]);
 
     if (creatorsRes.error) throw creatorsRes.error;
@@ -159,7 +164,7 @@ export async function syncCreatorData(creatorId: string) {
           id: settingsRes.data.creator_id,
           userTimezone: settingsRes.data.user_timezone,
           notificationsEnabled: settingsRes.data.notifications_enabled,
-          hideTimesPopup: false,
+          hideTimesPopup: settingsRes.data.hide_times_popup || false,
           createdAt: settingsRes.data.created_at,
         }
       : null;
