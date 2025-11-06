@@ -3,7 +3,8 @@ import { useApp } from '../../context/AppContext';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
-import { Settings, Bell, User, Clock, Image, Save, HelpCircle } from 'lucide-react';
+import { Settings, Bell, User, Clock, Image, Save, HelpCircle, Send, CheckCircle, XCircle } from 'lucide-react';
+import { sendTelegramNotification } from '../../services/telegramService';
 
 export function CreatorSettingsScreen() {
   const { state, updateCreator } = useApp();
@@ -19,6 +20,8 @@ export function CreatorSettingsScreen() {
   const [profilePicture, setProfilePicture] = useState(selectedCreator?.profilePicture || '');
   const [telegramBotToken, setTelegramBotToken] = useState(selectedCreator?.telegramBotToken || '');
   const [telegramChatId, setTelegramChatId] = useState(selectedCreator?.telegramChatId || '');
+  const [testingTelegram, setTestingTelegram] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   const handleProfilePictureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -45,6 +48,62 @@ export function CreatorSettingsScreen() {
     alert('✅ Creator settings saved successfully!');
   };
 
+  const handleTestTelegram = async () => {
+    if (!telegramBotToken.trim() || !telegramChatId.trim()) {
+      setTestResult({
+        success: false,
+        message: '⚠️ Please enter both Bot Token and Chat ID',
+      });
+      return;
+    }
+
+    setTestingTelegram(true);
+    setTestResult(null);
+
+    const testMessage = {
+      text: `
+🎉 <b>Test Message Successful!</b>
+
+✅ Your Telegram bot is configured correctly!
+
+🤖 Bot Token: Working
+💬 Chat ID: Connected
+📱 Notifications: Ready
+
+You'll now receive notifications when:
+⏰ It's time to post
+✅ Posts are completed
+📊 Daily summaries
+
+<i>This is a test message from Social Post Tracker</i>
+      `.trim(),
+      parseMode: 'HTML' as const,
+    };
+
+    const result = await sendTelegramNotification(
+      telegramBotToken.trim(),
+      telegramChatId.trim(),
+      testMessage
+    );
+
+    setTestingTelegram(false);
+
+    if (result.success) {
+      setTestResult({
+        success: true,
+        message: '✅ Test message sent! Check your Telegram.',
+      });
+    } else {
+      setTestResult({
+        success: false,
+        message: `❌ Failed: ${result.error || 'Unknown error'}`,
+      });
+    }
+
+    // Clear result after 10 seconds
+    setTimeout(() => setTestResult(null), 10000);
+  };
+
   // Update form when creator changes
   const handleCreatorChange = (creatorId: string) => {
     setSelectedCreatorId(creatorId);
@@ -55,6 +114,7 @@ export function CreatorSettingsScreen() {
       setProfilePicture(creator.profilePicture || '');
       setTelegramBotToken(creator.telegramBotToken || '');
       setTelegramChatId(creator.telegramChatId || '');
+      setTestResult(null);
     }
   };
 
@@ -348,16 +408,81 @@ export function CreatorSettingsScreen() {
                 <Input
                   label="🤖 Bot Token"
                   value={telegramBotToken}
-                  onChange={(e) => setTelegramBotToken(e.target.value)}
+                  onChange={(e) => {
+                    setTelegramBotToken(e.target.value);
+                    setTestResult(null);
+                  }}
                   placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
                 />
 
                 <Input
                   label="💬 Chat ID"
                   value={telegramChatId}
-                  onChange={(e) => setTelegramChatId(e.target.value)}
+                  onChange={(e) => {
+                    setTelegramChatId(e.target.value);
+                    setTestResult(null);
+                  }}
                   placeholder="987654321 or -1001234567890"
                 />
+
+                {/* Test Button */}
+                {telegramBotToken && telegramChatId && (
+                  <div className="pt-2">
+                    <Button
+                      onClick={handleTestTelegram}
+                      disabled={testingTelegram}
+                      className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white w-full"
+                    >
+                      {testingTelegram ? (
+                        <>
+                          <div className="w-5 h-5 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Sending Test...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-5 h-5 mr-2" />
+                          📨 Send Test Message
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+
+                {/* Test Result */}
+                {testResult && (
+                  <div
+                    className={`p-4 rounded-lg border-2 flex items-center gap-3 ${
+                      testResult.success
+                        ? 'bg-green-50 border-green-300'
+                        : 'bg-red-50 border-red-300'
+                    }`}
+                  >
+                    {testResult.success ? (
+                      <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
+                    ) : (
+                      <XCircle className="w-6 h-6 text-red-600 flex-shrink-0" />
+                    )}
+                    <div className="flex-1">
+                      <p
+                        className={`font-semibold ${
+                          testResult.success ? 'text-green-900' : 'text-red-900'
+                        }`}
+                      >
+                        {testResult.message}
+                      </p>
+                      {testResult.success && (
+                        <p className="text-xs text-green-700 mt-1">
+                          💡 Open Telegram to see your test message!
+                        </p>
+                      )}
+                      {!testResult.success && (
+                        <p className="text-xs text-red-700 mt-1">
+                          💡 Check your Bot Token and Chat ID, or make sure you've started a chat with your bot
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {telegramBotToken && telegramChatId && (
                   <div className="p-3 bg-green-50 border-2 border-green-300 rounded-lg">
