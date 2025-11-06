@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import {
   AppState,
+  AuthState,
   UserSettings,
   Creator,
   PlatformAccount,
@@ -20,6 +21,9 @@ interface AppContextType {
   state: AppState;
   currentScreen: Screen;
   setCurrentScreen: (screen: Screen) => void;
+  
+  // Auth
+  setAuthState: (authState: AuthState) => void;
   
   // User settings
   updateUserSettings: (settings: Partial<UserSettings>) => void;
@@ -62,6 +66,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     
     // Initial state
     return {
+      authState: {
+        isAuthenticated: false,
+        currentCreatorId: null,
+        currentUsername: null,
+      },
       userSettings: null,
       creators: [],
       accounts: [],
@@ -484,12 +493,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const setAuthState = (authState: AuthState) => {
+    setState((prev) => ({
+      ...prev,
+      authState,
+    }));
+  };
+
   return (
     <AppContext.Provider
       value={{
         state,
         currentScreen,
         setCurrentScreen,
+        setAuthState,
         updateUserSettings,
         completeOnboarding,
         addCreator,

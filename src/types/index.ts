@@ -121,7 +121,15 @@ export interface PlatformChecklistTemplate {
 }
 
 // App State
+// Auth State
+export interface AuthState {
+  isAuthenticated: boolean;
+  currentCreatorId: string | null;
+  currentUsername: string | null;
+}
+
 export interface AppState {
+  authState: AuthState;
   userSettings: UserSettings | null;
   creators: Creator[];
   accounts: PlatformAccount[];
@@ -133,6 +141,7 @@ export interface AppState {
 
 // Navigation
 export type Screen = 
+  | 'auth'
   | 'onboarding'
   | 'schedule-overview'
   | 'scheduled-posts'

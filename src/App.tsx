@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Navigation } from './components/Navigation';
+import { AuthScreen } from './components/screens/AuthScreen';
 import { OnboardingScreen } from './components/screens/OnboardingScreen';
 import { ScheduleOverviewScreen } from './components/screens/ScheduleOverviewScreen';
 import { ScheduledPostsScreen } from './components/screens/ScheduledPostsScreen';
@@ -11,7 +12,31 @@ import { CreatorsScreen } from './components/screens/CreatorsScreen';
 import { SettingsScreen } from './components/screens/SettingsScreen';
 
 function AppContent() {
-  const { currentScreen, state, getTodayPlan } = useApp();
+  const { currentScreen, state, getTodayPlan, setAuthState } = useApp();
+  const [urlUsername, setUrlUsername] = useState<string | null>(null);
+
+  // Check URL for username parameter
+  useEffect(() => {
+    const path = window.location.pathname;
+    if (path && path !== '/' && path !== '/index.html') {
+      const username = path.replace('/', '').trim();
+      if (username) {
+        setUrlUsername(username);
+      }
+    }
+  }, []);
+
+  const handleAuthenticated = (creatorId: string, username: string) => {
+    setAuthState({
+      isAuthenticated: true,
+      currentCreatorId: creatorId,
+      currentUsername: username,
+    });
+    // URL will be /username, which is correct
+    if (!window.location.pathname.includes(username)) {
+      window.history.pushState({}, '', `/${username}`);
+    }
+  };
 
   // Check for notifications when slots become ready
   useEffect(() => {
@@ -45,6 +70,11 @@ function AppContent() {
 
     return () => clearInterval(interval);
   }, [state.userSettings, state.accounts]);
+
+  // Show auth screen if not authenticated
+  if (!state.authState?.isAuthenticated) {
+    return <AuthScreen username={urlUsername || undefined} onAuthenticated={handleAuthenticated} />;
+  }
 
   if (currentScreen === 'onboarding') {
     return <OnboardingScreen />;

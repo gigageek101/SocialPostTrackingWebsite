@@ -156,8 +156,11 @@ export async function syncCreatorData(creatorId: string) {
 
     const userSettings: UserSettings | null = settingsRes.data
       ? {
+          id: settingsRes.data.creator_id,
           userTimezone: settingsRes.data.user_timezone,
           notificationsEnabled: settingsRes.data.notifications_enabled,
+          hideTimesPopup: false,
+          createdAt: settingsRes.data.created_at,
         }
       : null;
 
