@@ -13,9 +13,12 @@ import {
 } from '../types';
 import { loadFromStorage, saveToStorage, exportData } from '../utils/storage';
 import { generateId, getBrowserTimezone } from '../utils/helpers';
-import { CHECKLIST_TEMPLATES, DEFAULT_CREATOR_TIMEZONE } from '../constants/platforms';
+import { CHECKLIST_TEMPLATES, DEFAULT_CREATOR_TIMEZONE, COOLDOWN_MINUTES } from '../constants/platforms';
 import { generateDailyPlan, getTodayKey } from '../utils/scheduler';
 import { getCurrentUTC, formatInTimezone } from '../utils/timezone';
+import { sendTelegramNotification, formatPostCompletedNotification } from '../services/telegramService';
+import { markNotificationAsSent, generateNotificationKey } from '../utils/notificationTracker';
+import { format } from 'date-fns';
 
 interface AppContextType {
   state: AppState;
@@ -212,7 +215,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }));
   };
 
-  const logPost = (
+  const logPost = async (
     slotId: string | undefined, 
     checklistState: ChecklistState, 
     notes: string,
@@ -353,6 +356,71 @@ export function AppProvider({ children }: { children: ReactNode }) {
         };
       }
     });
+
+    // Send Telegram notification after post is logged
+    const finalAccount = state.accounts.find(a => a.id === (accountId || state.accounts[0]?.id));
+    if (finalAccount) {
+      const creator = state.creators.find(c => c.id === finalAccount.creatorId);
+      if (creator?.telegramBotToken && creator?.telegramChatId) {
+        // Determine shift and post number
+        const today = format(new Date(), 'yyyy-MM-dd');
+        const todayPosts = state.postLogs.filter(log => {
+          const logDate = format(new Date(log.timestampUTC), 'yyyy-MM-dd');
+          return logDate === today && log.accountId === finalAccount.id;
+        });
+
+        const userTimeStr = formatInTimezone(now, state.userSettings?.userTimezone || getBrowserTimezone(), false);
+        const isPM = userTimeStr.includes('PM');
+        const timeMatch = userTimeStr.match(/(\d+):(\d+)/);
+        let shift: 'morning' | 'evening' = 'morning';
+        
+        if (timeMatch) {
+          let hour = parseInt(timeMatch[1]);
+          if (isPM && hour !== 12) hour += 12;
+          if (!isPM && hour === 12) hour = 0;
+          shift = hour < 14 ? 'morning' : 'evening';
+        }
+
+        const shiftPosts = todayPosts.filter(p => {
+          const postUserTimeStr = p.timestampUserTZ;
+          const postIsPM = postUserTimeStr.includes('PM');
+          const postTimeMatch = postUserTimeStr.match(/(\d+):(\d+)/);
+          if (postTimeMatch) {
+            let postHour = parseInt(postTimeMatch[1]);
+            if (postIsPM && postHour !== 12) postHour += 12;
+            if (!postIsPM && postHour === 12) postHour = 0;
+            const postShift = postHour < 14 ? 'morning' : 'evening';
+            return postShift === shift;
+          }
+          return false;
+        });
+
+        const postNumber = shiftPosts.length + 1;
+        const waitMinutes = COOLDOWN_MINUTES[finalAccount.platform] || 120;
+
+        const notificationKey = generateNotificationKey('post-completed', finalAccount.id, shift, postNumber, today);
+        
+        // Send notification asynchronously (don't wait)
+        sendTelegramNotification(
+          creator.telegramBotToken,
+          creator.telegramChatId,
+          {
+            text: formatPostCompletedNotification(
+              finalAccount.platform,
+              finalAccount.handle,
+              postNumber,
+              shift,
+              waitMinutes
+            ),
+            parseMode: 'HTML',
+          }
+        ).then(() => {
+          markNotificationAsSent(notificationKey);
+        }).catch(err => {
+          console.error('Failed to send Telegram notification:', err);
+        });
+      }
+    }
   };
 
   const logUnscheduledPost = (

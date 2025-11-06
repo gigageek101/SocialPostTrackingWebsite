@@ -10,6 +10,8 @@ import { format } from 'date-fns';
 import { PLATFORM_NAMES, COOLDOWN_MINUTES } from '../../constants/platforms';
 import { getAllRecommendedPosts, RecommendedPost } from '../../utils/dynamicScheduler';
 import { formatCountdown, getMinutesUntil } from '../../utils/timezone';
+import { sendTelegramNotification, formatPostReadyNotification } from '../../services/telegramService';
+import { hasNotificationBeenSent, markNotificationAsSent, generateNotificationKey, clearOldNotifications } from '../../utils/notificationTracker';
 
 export function ScheduleOverviewScreen() {
   const { state, logPost, setCurrentScreen } = useApp();
@@ -27,6 +29,89 @@ export function ScheduleOverviewScreen() {
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Clear old notifications daily
+  useEffect(() => {
+    clearOldNotifications();
+    const dailyClear = setInterval(() => {
+      clearOldNotifications();
+    }, 24 * 60 * 60 * 1000); // Once per day
+    return () => clearInterval(dailyClear);
+  }, []);
+
+  // Check for posts that are ready and send Telegram notifications
+  useEffect(() => {
+    if (!state.accounts.length || !state.creators.length || !state.userSettings) return;
+
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const todayPosts = state.postLogs.filter(log => {
+      const logDate = format(new Date(log.timestampUTC), 'yyyy-MM-dd');
+      return logDate === today;
+    });
+
+    const recommendations = getAllRecommendedPosts(
+      state.accounts,
+      state.creators,
+      state.userSettings,
+      todayPosts
+    );
+
+    // Check each recommendation to see if it's ready (within 5 minutes of recommended time or overdue)
+    recommendations.forEach(rec => {
+      const recTimeUTC = new Date(rec.recommendedTimeUTC);
+      const minutesUntil = Math.floor(
+        (recTimeUTC.getTime() - currentTime.getTime()) / 1000 / 60
+      );
+
+      // If post is ready (within 5 minutes or past due) and not in cooldown
+      if (!rec.isDuringCooldown && minutesUntil <= 5 && minutesUntil >= -30) {
+        const account = state.accounts.find(a => a.id === rec.accountId);
+        if (!account) return;
+
+        const creator = state.creators.find(c => c.id === account.creatorId);
+        if (!creator?.telegramBotToken || !creator?.telegramChatId) return;
+
+        // Generate notification key
+        const notificationKey = generateNotificationKey(
+          'post-ready',
+          rec.accountId,
+          rec.shift,
+          rec.postNumber,
+          today
+        );
+
+        // Only send if not already sent
+        if (!hasNotificationBeenSent(notificationKey)) {
+          console.log(`📨 Sending Telegram notification for ${account.platform} @${account.handle}`);
+          
+          sendTelegramNotification(
+            creator.telegramBotToken,
+            creator.telegramChatId,
+            {
+              text: formatPostReadyNotification(
+                account.platform,
+                account.handle,
+                rec.postNumber,
+                rec.shift,
+                rec.recommendedTimeCreatorTZ,
+                rec.recommendedTimeUserTZ
+              ),
+              parseMode: 'HTML',
+            }
+          ).then(result => {
+            if (result.success) {
+              markNotificationAsSent(notificationKey);
+              console.log(`✅ Telegram notification sent for ${account.platform} @${account.handle}`);
+            } else {
+              console.error(`❌ Failed to send Telegram notification: ${result.error}`);
+            }
+          }).catch(err => {
+            console.error('Failed to send Telegram notification:', err);
+          });
+        }
+      }
+    });
+  }, [currentTime, state.accounts, state.postLogs, state.creators, state.userSettings]);
   
   // Force re-render when posts are logged to immediately show next recommendation
   useEffect(() => {
