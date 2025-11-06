@@ -176,8 +176,11 @@ export function ScheduleOverviewScreen() {
   if (!account || !creator) return null;
 
   const minutesUntil = getMinutesUntil(nextSlot.scheduledTimeUTC);
-  const isReady = minutesUntil <= 0 && minutesUntil > -10;
   const platformName = PLATFORM_NAMES[nextSlot.platform];
+  
+  // Determine timing status
+  const isTooEarly = minutesUntil > 15; // More than 15 min early
+  const isPerfectTime = minutesUntil >= -15 && minutesUntil <= 15; // Within 15 min window
   
   // Get ordinal for post number
   const getOrdinal = (n: number) => {
@@ -190,6 +193,31 @@ export function ScheduleOverviewScreen() {
                     postNumberInShift === 2 ? 'Second' : 
                     postNumberInShift === 3 ? 'Third' : 
                     getOrdinal(postNumberInShift);
+  
+  // Get button text and styling based on timing
+  const getButtonConfig = () => {
+    if (isPerfectTime) {
+      return {
+        text: `✓ Perfect Time! Post Now, Click When Posted`,
+        className: 'bg-green-600 hover:bg-green-700',
+        emoji: '🎯'
+      };
+    } else if (isTooEarly) {
+      return {
+        text: `⚠️ Too Early! Right now it's ${nextSlot.scheduledTimeCreatorTZ} in ${creator.timezone.split('/')[1]}. Your decision to post anyway.`,
+        className: 'bg-amber-600 hover:bg-amber-700',
+        emoji: '⏰'
+      };
+    } else {
+      return {
+        text: `⚠️ You're Late! Should have posted at ${nextSlot.scheduledTimeCreatorTZ}. Post anyway?`,
+        className: 'bg-red-600 hover:bg-red-700',
+        emoji: '⏱️'
+      };
+    }
+  };
+  
+  const buttonConfig = getButtonConfig();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
@@ -294,35 +322,56 @@ export function ScheduleOverviewScreen() {
                 </div>
               </div>
 
-              {/* Countdown or Ready */}
-              {!isReady ? (
+              {/* Timing Status */}
+              {isPerfectTime ? (
+                <div className="p-6 bg-green-50 border-2 border-green-200 rounded-2xl mb-6 animate-pulse">
+                  <div className="text-2xl font-bold text-green-900">
+                    🎯 Perfect Timing Window!
+                  </div>
+                  <div className="text-sm text-green-700 mt-2">
+                    Post now for optimal engagement
+                  </div>
+                </div>
+              ) : isTooEarly ? (
                 <div className="p-6 bg-amber-50 border-2 border-amber-200 rounded-2xl mb-6">
-                  <div className="text-sm text-amber-600 font-semibold mb-2">Time Until Post</div>
-                  <div className="text-5xl font-black text-amber-900">
-                    {formatCountdown(minutesUntil)}
+                  <div className="text-sm text-amber-600 font-semibold mb-2">You're {formatCountdown(minutesUntil)} Early</div>
+                  <div className="text-3xl font-black text-amber-900">
+                    ⏰ Not Scheduled Yet
+                  </div>
+                  <div className="text-sm text-amber-700 mt-2">
+                    Scheduled for {nextSlot.scheduledTimeCreatorTZ}
                   </div>
                 </div>
               ) : (
-                <div className="p-6 bg-green-50 border-2 border-green-200 rounded-2xl mb-6 animate-pulse">
-                  <div className="text-2xl font-bold text-green-900">
-                    ✓ Ready to Post Now!
+                <div className="p-6 bg-red-50 border-2 border-red-200 rounded-2xl mb-6">
+                  <div className="text-sm text-red-600 font-semibold mb-2">You're {formatCountdown(Math.abs(minutesUntil))} Late</div>
+                  <div className="text-3xl font-black text-red-900">
+                    ⏱️ Past Scheduled Time
+                  </div>
+                  <div className="text-sm text-red-700 mt-2">
+                    Was scheduled for {nextSlot.scheduledTimeCreatorTZ}
                   </div>
                 </div>
               )}
 
-              {/* Post Button */}
+              {/* Post Button - Always Enabled */}
               <Button
                 onClick={() => handleClockIn(nextSlot)}
-                disabled={!isReady}
                 size="lg"
-                className={`text-2xl px-12 py-6 rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all ${
-                  isReady ? 'bg-green-600 hover:bg-green-700' : ''
-                }`}
+                className={`text-lg px-8 py-6 rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all ${buttonConfig.className}`}
               >
-                {isReady 
-                  ? `✓ I Just Made ${postLabel} Post of ${shift.charAt(0).toUpperCase() + shift.slice(1)} Shift` 
-                  : '⏱️ Wait for Scheduled Time'}
+                {buttonConfig.text}
               </Button>
+              
+              {/* Timing feedback below button */}
+              <p className="text-sm text-gray-600 mt-3 max-w-xl mx-auto">
+                {isPerfectTime 
+                  ? `You're in the perfect posting window (±15 minutes). This will log as "${postLabel} post of ${shift} shift".`
+                  : isTooEarly
+                  ? `Posting now will still log as "${postLabel} post of ${shift} shift", but algorithm prefers scheduled time.`
+                  : `Late posting still counts as "${postLabel} post of ${shift} shift". Try to stay on schedule next time.`
+                }
+              </p>
               
               {/* Cooldown info for platforms that need it */}
               {(nextSlot.platform === 'tiktok' || nextSlot.platform === 'threads') && (
