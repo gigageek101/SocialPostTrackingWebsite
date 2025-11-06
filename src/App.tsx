@@ -9,6 +9,7 @@ import { ContentScreen } from './components/screens/ContentScreen';
 import { WorkflowScreen } from './components/screens/WorkflowScreen';
 import { CalendarScreen } from './components/screens/CalendarScreen';
 import { CreatorsScreen } from './components/screens/CreatorsScreen';
+import { CreatorSettingsScreen } from './components/screens/CreatorSettingsScreen';
 import { SettingsScreen } from './components/screens/SettingsScreen';
 
 function AppContent() {
@@ -109,6 +110,7 @@ function AppContent() {
         {currentScreen === 'workflow' && <WorkflowScreen />}
         {currentScreen === 'calendar' && <CalendarScreen />}
         {currentScreen === 'creators' && <CreatorsScreen />}
+        {currentScreen === 'creator-settings' && <CreatorSettingsScreen />}
         {currentScreen === 'settings' && <SettingsScreen />}
       </main>
     </div>

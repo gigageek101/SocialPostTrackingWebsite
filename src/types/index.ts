@@ -151,6 +151,7 @@ export type Screen =
   | 'workflow'
   | 'calendar'
   | 'creators'
+  | 'creator-settings'
   | 'settings';
 
 // Notification
