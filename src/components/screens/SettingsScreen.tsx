@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Select } from '../ui/Select';
-import { Settings as SettingsIcon, Download, Upload, Bell, BellOff, Trash2, CalendarX } from 'lucide-react';
+import { Settings as SettingsIcon, Download, Upload, Bell, BellOff, Trash2, CalendarX, LogOut } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { COMMON_TIMEZONES } from '../../utils/timezone';
 import { exportData, importData, clearStorage } from '../../utils/storage';
 import { requestNotificationPermission } from '../../utils/helpers';
 
 export function SettingsScreen() {
-  const { state, updateUserSettings, importData: handleImport, clearScheduleData } = useApp();
+  const { state, updateUserSettings, importData: handleImport, clearScheduleData, setAuthState, setCurrentScreen } = useApp();
   const [importing, setImporting] = useState(false);
 
   if (!state.userSettings) return null;
@@ -75,6 +75,23 @@ export function SettingsScreen() {
     ) {
       clearStorage();
       window.location.reload();
+    }
+  };
+
+  const handleLogout = () => {
+    if (confirm('🚪 Logout?\n\nYou will need to login again. Your data is saved in the cloud!')) {
+      // Clear remembered auth
+      localStorage.removeItem('rememberedAuth');
+      
+      // Reset auth state
+      setAuthState({
+        isAuthenticated: false,
+        currentCreatorId: null,
+        currentUsername: null,
+      });
+      
+      // Go to auth screen
+      setCurrentScreen('auth');
     }
   };
 
@@ -195,6 +212,32 @@ export function SettingsScreen() {
               Clear Data
             </Button>
           </div>
+        </div>
+      </Card>
+
+      {/* Account Management */}
+      <Card>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Account</h2>
+        
+        <div className="space-y-4">
+          <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800 mb-2">
+              <strong>Logged in as:</strong> {state.authState?.currentUsername || 'Unknown'}
+            </p>
+            <p className="text-xs text-blue-600">
+              ☁️ All your data is synced to the cloud
+            </p>
+          </div>
+
+          <Button 
+            onClick={handleLogout}
+            variant="danger"
+            fullWidth
+            className="flex items-center justify-center gap-2"
+          >
+            <LogOut className="w-5 h-5" />
+            Logout
+          </Button>
         </div>
       </Card>
 
