@@ -18,6 +18,7 @@ export function AuthScreen({ username: urlUsername, onAuthenticated }: AuthScree
   const [timezone, setTimezone] = useState('America/Chicago');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rememberMe, setRememberMe] = useState(true); // Default to true
 
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) {
@@ -34,6 +35,15 @@ export function AuthScreen({ username: urlUsername, onAuthenticated }: AuthScree
       setError(authError || 'Authentication failed');
       setLoading(false);
       return;
+    }
+
+    // Save to localStorage if "Remember Forever" is checked
+    if (rememberMe) {
+      localStorage.setItem('rememberedAuth', JSON.stringify({
+        creatorId: creator.id,
+        username: username,
+        timestamp: new Date().toISOString(),
+      }));
     }
 
     onAuthenticated(creator.id, username);
@@ -65,6 +75,15 @@ export function AuthScreen({ username: urlUsername, onAuthenticated }: AuthScree
       setError(createError || 'Failed to create creator');
       setLoading(false);
       return;
+    }
+
+    // Auto-save for new accounts
+    if (rememberMe) {
+      localStorage.setItem('rememberedAuth', JSON.stringify({
+        creatorId: creator.id,
+        username: username,
+        timestamp: new Date().toISOString(),
+      }));
     }
 
     onAuthenticated(creator.id, username);
@@ -137,6 +156,20 @@ export function AuthScreen({ username: urlUsername, onAuthenticated }: AuthScree
               placeholder="••••••••"
               disabled={loading}
             />
+          </div>
+
+          {/* Remember Forever */}
+          <div className="flex items-center gap-3 p-3 bg-green-50 border-2 border-green-200 rounded-lg">
+            <input
+              type="checkbox"
+              id="rememberMe"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500"
+            />
+            <label htmlFor="rememberMe" className="flex-1 text-sm font-semibold text-green-900 cursor-pointer">
+              🔒 Remember me forever on this device
+            </label>
           </div>
 
           {/* Signup Only Fields */}

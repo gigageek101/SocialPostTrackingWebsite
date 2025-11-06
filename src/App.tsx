@@ -15,6 +15,24 @@ function AppContent() {
   const { currentScreen, state, getTodayPlan, setAuthState } = useApp();
   const [urlUsername, setUrlUsername] = useState<string | null>(null);
 
+  // Check for remembered authentication
+  useEffect(() => {
+    const remembered = localStorage.getItem('rememberedAuth');
+    if (remembered && !state.authState?.isAuthenticated) {
+      try {
+        const auth = JSON.parse(remembered);
+        setAuthState({
+          isAuthenticated: true,
+          currentCreatorId: auth.creatorId,
+          currentUsername: auth.username,
+        });
+      } catch (e) {
+        console.error('Failed to parse remembered auth', e);
+        localStorage.removeItem('rememberedAuth');
+      }
+    }
+  }, []);
+
   // Check URL for username parameter
   useEffect(() => {
     const path = window.location.pathname;

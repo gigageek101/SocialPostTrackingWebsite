@@ -8,7 +8,7 @@ import { PlatformIcon } from '../ui/PlatformIcon';
 import { Plus, Trash2, User } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { DEFAULT_CREATOR_TIMEZONE, PLATFORM_NAMES } from '../../constants/platforms';
-import { Platform } from '../../types';
+import { Platform, Creator } from '../../types';
 
 export function CreatorsScreen() {
   const { state, addCreator, addAccount, deleteCreator, deleteAccount, updateCreator, updateAccount } = useApp();
@@ -20,6 +20,8 @@ export function CreatorsScreen() {
   const [creatorName, setCreatorName] = useState('');
   const [creatorTimezone, setCreatorTimezone] = useState(DEFAULT_CREATOR_TIMEZONE);
   const [creatorProfilePicture, setCreatorProfilePicture] = useState('');
+  const [telegramBotToken, setTelegramBotToken] = useState('');
+  const [telegramChatId, setTelegramChatId] = useState('');
   
   // Account form
   const [accountPlatform, setAccountPlatform] = useState<Platform>('tiktok');
@@ -32,12 +34,20 @@ export function CreatorsScreen() {
     if (!creatorName.trim()) return;
     
     const creator = addCreator(creatorName, creatorTimezone);
-    if (creatorProfilePicture) {
-      updateCreator(creator.id, { profilePicture: creatorProfilePicture });
+    const updates: Partial<Creator> = {};
+    if (creatorProfilePicture) updates.profilePicture = creatorProfilePicture;
+    if (telegramBotToken.trim()) updates.telegramBotToken = telegramBotToken.trim();
+    if (telegramChatId.trim()) updates.telegramChatId = telegramChatId.trim();
+    
+    if (Object.keys(updates).length > 0) {
+      updateCreator(creator.id, updates);
     }
+    
     setCreatorName('');
     setCreatorTimezone(DEFAULT_CREATOR_TIMEZONE);
     setCreatorProfilePicture('');
+    setTelegramBotToken('');
+    setTelegramChatId('');
     setShowCreatorModal(false);
   };
 
@@ -235,6 +245,33 @@ export function CreatorsScreen() {
             value={creatorName}
             onChange={(e) => setCreatorName(e.target.value)}
           />
+          
+          {/* Telegram Bot Settings */}
+          <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
+            <h4 className="font-semibold text-blue-900 mb-2">📱 Telegram Notifications (Optional)</h4>
+            <p className="text-xs text-blue-700 mb-3">
+              Get notified when it's time to post, when posts are done, and daily summaries!
+            </p>
+            
+            <Input
+              label="Bot Token"
+              placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
+              value={telegramBotToken}
+              onChange={(e) => setTelegramBotToken(e.target.value)}
+              className="mb-3"
+            />
+            
+            <Input
+              label="Chat ID"
+              placeholder="-1001234567890 or your user ID"
+              value={telegramChatId}
+              onChange={(e) => setTelegramChatId(e.target.value)}
+            />
+            
+            <p className="text-xs text-blue-600 mt-2">
+              💡 Create a bot with <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" className="underline font-semibold">@BotFather</a> to get your token
+            </p>
+          </div>
           
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <p className="text-sm text-blue-900">

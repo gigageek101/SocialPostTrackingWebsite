@@ -18,6 +18,8 @@ export interface Creator {
   name: string;
   timezone: string; // Default: America/Chicago
   profilePicture?: string; // Base64 encoded image
+  telegramBotToken?: string; // Telegram bot token for notifications
+  telegramChatId?: string; // Telegram chat ID for notifications
   createdAt: string;
 }
 
