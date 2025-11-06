@@ -151,20 +151,16 @@ export function getAllRecommendedPosts(
     }
   }
   
-  // Sort by availability first, then by recommended time
-  // Priority: Posts without cooldown > Posts in cooldown
+  // Sort by availability and time
+  // All times are recommendations - you can post anytime
   recommendations.sort((a, b) => {
-    // First priority: Not in cooldown
+    // First priority: Not in cooldown (cooldown is the only real blocker)
     if (a.isDuringCooldown !== b.isDuringCooldown) {
       return a.isDuringCooldown ? 1 : -1; // Not in cooldown comes first
     }
     
-    // Second priority: Ready now (past recommended time)
-    if (a.isReady !== b.isReady) {
-      return a.isReady ? -1 : 1; // Ready posts come first
-    }
-    
-    // Third priority: Earliest recommended time
+    // Second priority: Earliest recommended time (chronological order)
+    // This shows posts in order regardless of whether they're past/present/future
     return a.recommendedTimeUTC.localeCompare(b.recommendedTimeUTC);
   });
   
