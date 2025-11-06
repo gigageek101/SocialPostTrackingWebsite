@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Select } from '../ui/Select';
-import { Settings as SettingsIcon, Download, Upload, Bell, BellOff, Trash2 } from 'lucide-react';
+import { Settings as SettingsIcon, Download, Upload, Bell, BellOff, Trash2, CalendarX } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { COMMON_TIMEZONES } from '../../utils/timezone';
 import { exportData, importData, clearStorage } from '../../utils/storage';
 import { requestNotificationPermission } from '../../utils/helpers';
 
 export function SettingsScreen() {
-  const { state, updateUserSettings, importData: handleImport } = useApp();
+  const { state, updateUserSettings, importData: handleImport, clearScheduleData } = useApp();
   const [importing, setImporting] = useState(false);
 
   if (!state.userSettings) return null;
@@ -54,6 +54,17 @@ export function SettingsScreen() {
       }
     };
     input.click();
+  };
+
+  const handleClearSchedule = () => {
+    if (
+      confirm(
+        '⚠️ Clear Schedule Data?\n\nThis will delete:\n• All posted logs\n• All daily plans\n• Reset all captions to unused\n\nThis will keep:\n✓ All creators\n✓ All accounts\n✓ User settings\n\nContinue?'
+      )
+    ) {
+      clearScheduleData();
+      alert('✅ Schedule data cleared! Your accounts are safe.');
+    }
   };
 
   const handleClearData = () => {
@@ -152,6 +163,21 @@ export function SettingsScreen() {
               disabled={importing}
             >
               {importing ? 'Importing...' : 'Import'}
+            </Button>
+          </div>
+
+          <div className="flex items-center justify-between p-4 bg-orange-50 border border-orange-200 rounded-lg">
+            <div className="flex items-center gap-3">
+              <CalendarX className="w-6 h-6 text-orange-600" />
+              <div>
+                <h3 className="font-semibold text-gray-900">Clear Schedule Data</h3>
+                <p className="text-sm text-gray-600">
+                  Delete all posts but keep your accounts
+                </p>
+              </div>
+            </div>
+            <Button variant="secondary" onClick={handleClearSchedule}>
+              Clear Schedule
             </Button>
           </div>
 

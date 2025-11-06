@@ -47,6 +47,7 @@ interface AppContextType {
   // Export/Import
   exportData: () => void;
   importData: (data: AppState) => void;
+  clearScheduleData: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -466,6 +467,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setState(data);
   };
 
+  const clearScheduleData = () => {
+    setState((prev) => {
+      // Reset all captions to unused
+      const resetAccounts = prev.accounts.map(account => ({
+        ...account,
+        captions: account.captions?.map(caption => ({ ...caption, used: false }))
+      }));
+
+      return {
+        ...prev,
+        accounts: resetAccounts,
+        postLogs: [], // Clear all posts
+        dailyPlans: [], // Clear all daily plans
+      };
+    });
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -487,6 +505,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateSlotStatus,
         exportData: handleExportData,
         importData: handleImportData,
+        clearScheduleData,
       }}
     >
       {children}
