@@ -3,7 +3,7 @@ import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { PostChecklistModal } from '../PostChecklistModal';
 import { PlatformIcon } from '../ui/PlatformIcon';
-import { Clock, TrendingUp, CheckCircle } from 'lucide-react';
+import { Clock, TrendingUp, CheckCircle, RefreshCw } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ChecklistState } from '../../types';
 import { format } from 'date-fns';
@@ -16,6 +16,8 @@ export function ScheduleOverviewScreen() {
   const [selectedRecommendation, setSelectedRecommendation] = useState<RecommendedPost | null>(null);
   const [showChecklist, setShowChecklist] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [refreshCounter, setRefreshCounter] = useState(0); // Force refresh counter
+  const [lastRecommendationId, setLastRecommendationId] = useState<string | null>(null);
 
   useEffect(() => {
     // Update current time every second (also triggers recommendations refresh)
@@ -27,18 +29,37 @@ export function ScheduleOverviewScreen() {
   
   // Force re-render when posts are logged to immediately show next recommendation
   useEffect(() => {
-    // Aggressive refresh: force multiple state updates to ensure recalculation
+    // SUPER AGGRESSIVE refresh with refresh counter
     setCurrentTime(new Date()); // Immediate
-    const timer1 = setTimeout(() => setCurrentTime(new Date()), 50);
-    const timer2 = setTimeout(() => setCurrentTime(new Date()), 150);
-    const timer3 = setTimeout(() => setCurrentTime(new Date()), 300);
+    setRefreshCounter(prev => prev + 1); // Force re-render
+    
+    const timer1 = setTimeout(() => {
+      setCurrentTime(new Date());
+      setRefreshCounter(prev => prev + 1);
+    }, 50);
+    
+    const timer2 = setTimeout(() => {
+      setCurrentTime(new Date());
+      setRefreshCounter(prev => prev + 1);
+    }, 150);
+    
+    const timer3 = setTimeout(() => {
+      setCurrentTime(new Date());
+      setRefreshCounter(prev => prev + 1);
+    }, 300);
+    
+    const timer4 = setTimeout(() => {
+      setCurrentTime(new Date());
+      setRefreshCounter(prev => prev + 1);
+    }, 500);
     
     return () => {
       clearTimeout(timer1);
       clearTimeout(timer2);
       clearTimeout(timer3);
+      clearTimeout(timer4);
     };
-  }, [state.postLogs.length]); // Use length to detect changes
+  }, [state.postLogs.length, state.accounts]); // Also watch accounts for caption changes
 
   if (!state.userSettings || state.creators.length === 0 || state.accounts.length === 0) {
     return (
@@ -66,6 +87,7 @@ export function ScheduleOverviewScreen() {
   });
 
   // Get all recommended posts using dynamic scheduler
+  // Include refreshCounter to force recalculation
   const recommendations = getAllRecommendedPosts(
     state.accounts,
     state.creators,
@@ -75,6 +97,28 @@ export function ScheduleOverviewScreen() {
 
   // Get the next recommendation (earliest one)
   const nextRecommendation = recommendations.length > 0 ? recommendations[0] : null;
+  
+  // Track recommendation changes for debugging
+  useEffect(() => {
+    if (nextRecommendation) {
+      const currentId = `${nextRecommendation.accountId}-${nextRecommendation.shift}-${nextRecommendation.postNumber}`;
+      if (currentId !== lastRecommendationId) {
+        console.log('🔄 Recommendation changed:', {
+          from: lastRecommendationId,
+          to: currentId,
+          recommendation: nextRecommendation
+        });
+        setLastRecommendationId(currentId);
+      }
+    }
+  }, [nextRecommendation, lastRecommendationId]);
+
+  // Manual refresh function
+  const handleManualRefresh = () => {
+    setCurrentTime(new Date());
+    setRefreshCounter(prev => prev + 1);
+    console.log('🔄 Manual refresh triggered');
+  };
 
   const handlePostNow = (recommendation: RecommendedPost) => {
     setSelectedRecommendation(recommendation);
@@ -87,6 +131,13 @@ export function ScheduleOverviewScreen() {
       const creator = state.creators.find(c => c.id === account?.creatorId);
       
       if (account && creator) {
+        console.log('📝 Logging post for:', {
+          account: account.handle,
+          platform: account.platform,
+          shift: selectedRecommendation.shift,
+          postNumber: selectedRecommendation.postNumber
+        });
+        
         // Close modal first
         setShowChecklist(false);
         setSelectedRecommendation(null);
@@ -94,10 +145,28 @@ export function ScheduleOverviewScreen() {
         // Log the post without a slot ID (dynamic posting)
         logPost(undefined, checklistState, notes, account.id, account.platform);
         
-        // Force immediate recalculation of recommendations
-        setTimeout(() => setCurrentTime(new Date()), 0);
-        setTimeout(() => setCurrentTime(new Date()), 100);
-        setTimeout(() => setCurrentTime(new Date()), 250);
+        // NUCLEAR OPTION: Force complete state reset
+        setTimeout(() => {
+          setCurrentTime(new Date());
+          setRefreshCounter(prev => prev + 1);
+        }, 0);
+        
+        setTimeout(() => {
+          setCurrentTime(new Date());
+          setRefreshCounter(prev => prev + 1);
+        }, 100);
+        
+        setTimeout(() => {
+          setCurrentTime(new Date());
+          setRefreshCounter(prev => prev + 1);
+        }, 250);
+        
+        setTimeout(() => {
+          setCurrentTime(new Date());
+          setRefreshCounter(prev => prev + 1);
+        }, 500);
+        
+        console.log('✅ Post logged, forced refresh triggered');
       }
     }
   };
@@ -176,6 +245,20 @@ export function ScheduleOverviewScreen() {
             {format(currentTime, 'EEEE, MMMM d, yyyy')}
           </div>
         </Card>
+
+        {/* Manual Refresh Button */}
+        <div className="mb-6 text-center">
+          <Button
+            onClick={handleManualRefresh}
+            className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 font-bold shadow-lg"
+          >
+            <RefreshCw className="w-5 h-5 mr-2" />
+            🔄 Force Refresh Recommendations
+          </Button>
+          <p className="text-xs text-gray-500 mt-2">
+            Click if next post doesn't appear after logging (Debug: refresh #{refreshCounter})
+          </p>
+        </div>
 
         {/* Info Card */}
         <Card className="shadow-lg mb-6 bg-blue-50 border-2 border-blue-200">
