@@ -231,6 +231,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
         
         const creator = prev.creators.find((c) => c.id === account.creatorId);
         
+        // Auto-assign caption for TikTok
+        let assignedCaptionId: string | undefined;
+        let updatedAccounts = prev.accounts;
+        
+        if (targetPlatform === 'tiktok' && account.captions && account.captions.length > 0) {
+          const nextCaption = account.captions.find(c => !c.used);
+          if (nextCaption) {
+            assignedCaptionId = nextCaption.id;
+            // Mark caption as used
+            updatedAccounts = prev.accounts.map(a => 
+              a.id === account.id 
+                ? { ...a, captions: a.captions?.map(c => c.id === nextCaption.id ? { ...c, used: true } : c) }
+                : a
+            );
+          }
+        }
+        
         const postLog: PostLogEntry = {
           id: generateId(),
           slotId,
@@ -249,6 +266,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           ),
           checklistState,
           notes,
+          captionId: assignedCaptionId,
           createdAt: now,
         };
         
@@ -264,6 +282,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         
         return {
           ...prev,
+          accounts: updatedAccounts,
           postLogs: [...prev.postLogs, postLog],
           dailyPlans: prev.dailyPlans.map((p) =>
             p.id === plan.id ? updatedPlan : p
@@ -277,6 +296,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (!account) return prev;
         
         const creator = prev.creators.find((c) => c.id === account.creatorId);
+        
+        // Auto-assign caption for TikTok
+        let assignedCaptionId: string | undefined;
+        let updatedAccounts = prev.accounts;
+        
+        if (platform === 'tiktok' && account.captions && account.captions.length > 0) {
+          const nextCaption = account.captions.find(c => !c.used);
+          if (nextCaption) {
+            assignedCaptionId = nextCaption.id;
+            // Mark caption as used
+            updatedAccounts = prev.accounts.map(a => 
+              a.id === account.id 
+                ? { ...a, captions: a.captions?.map(c => c.id === nextCaption.id ? { ...c, used: true } : c) }
+                : a
+            );
+          }
+        }
         
         const postLog: PostLogEntry = {
           id: generateId(),
@@ -296,11 +332,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
           ),
           checklistState,
           notes,
+          captionId: assignedCaptionId,
           createdAt: now,
         };
         
         return {
           ...prev,
+          accounts: updatedAccounts,
           postLogs: [...prev.postLogs, postLog],
         };
       }

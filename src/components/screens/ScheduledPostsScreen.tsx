@@ -4,13 +4,14 @@ import { Card } from '../ui/Card';
 import { PlatformIcon } from '../ui/PlatformIcon';
 import { PLATFORM_NAMES, PLATFORM_BASE_TIMES } from '../../constants/platforms';
 import { format } from 'date-fns';
-import { Clock, CheckCircle, ChevronDown, ChevronUp, Info } from 'lucide-react';
+import { Clock, CheckCircle, ChevronDown, ChevronUp, Info, Copy, Check, ExternalLink } from 'lucide-react';
 import { PostLogEntry } from '../../types';
 
 export function ScheduledPostsScreen() {
   const { state } = useApp();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -18,6 +19,12 @@ export function ScheduledPostsScreen() {
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  const copyToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   if (!state.userSettings) {
     return (
@@ -161,6 +168,83 @@ export function ScheduledPostsScreen() {
                 {/* Expanded Details */}
                 {isExpanded && (
                   <div className="mt-4 pt-4 border-t-2 border-gray-200 space-y-4 animate-fade-in">
+                    {/* Telegram Link */}
+                    {account.telegramLink && (
+                      <div>
+                        <h4 className="font-bold text-gray-900 mb-2">📱 Telegram</h4>
+                        <a
+                          href={account.telegramLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors font-medium"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          Open Post Links
+                        </a>
+                      </div>
+                    )}
+
+                    {/* Caption (TikTok only) */}
+                    {post.platform === 'tiktok' && post.captionId && account.captions && (
+                      (() => {
+                        const caption = account.captions.find(c => c.id === post.captionId);
+                        if (!caption) return null;
+
+                        return (
+                          <div>
+                            <h4 className="font-bold text-gray-900 mb-2">📝 Caption Used</h4>
+                            <div className="space-y-3">
+                              {/* Slides */}
+                              <div>
+                                <p className="text-sm font-semibold text-gray-700 mb-2">Slides:</p>
+                                <div className="space-y-2">
+                                  {caption.slides.map((slide, i) => (
+                                    <div key={i} className="flex items-start gap-2 bg-gray-50 p-2 rounded-lg border border-gray-200">
+                                      <span className="text-xs font-bold text-gray-500 mt-1">{i + 1}.</span>
+                                      <p className="text-sm text-gray-800 flex-1">{slide}</p>
+                                      <button
+                                        onClick={() => copyToClipboard(slide, `${post.id}-slide-${i}`)}
+                                        className="p-1 hover:bg-gray-200 rounded transition-colors flex-shrink-0"
+                                      >
+                                        {copiedId === `${post.id}-slide-${i}` ? (
+                                          <Check className="w-4 h-4 text-green-600" />
+                                        ) : (
+                                          <Copy className="w-4 h-4 text-gray-600" />
+                                        )}
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Title + Hashtags Combined */}
+                              <div>
+                                <p className="text-sm font-semibold text-gray-700 mb-2">Title + Hashtags:</p>
+                                <div className="bg-blue-50 p-3 rounded-lg border-2 border-blue-200">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex-1 space-y-2">
+                                      <p className="text-sm text-gray-900 font-medium">{caption.title}</p>
+                                      <p className="text-sm text-blue-700">{caption.hashtags}</p>
+                                    </div>
+                                    <button
+                                      onClick={() => copyToClipboard(`${caption.title}\n\n${caption.hashtags}`, `${post.id}-title`)}
+                                      className="p-2 hover:bg-blue-200 rounded transition-colors flex-shrink-0"
+                                    >
+                                      {copiedId === `${post.id}-title` ? (
+                                        <Check className="w-5 h-5 text-green-600" />
+                                      ) : (
+                                        <Copy className="w-5 h-5 text-blue-600" />
+                                      )}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()
+                    )}
+
                     {/* Checklist */}
                     <div>
                       <h4 className="font-bold text-gray-900 mb-2">✓ Completed Actions</h4>

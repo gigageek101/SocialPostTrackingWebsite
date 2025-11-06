@@ -4,6 +4,7 @@ import { Navigation } from './components/Navigation';
 import { OnboardingScreen } from './components/screens/OnboardingScreen';
 import { ScheduleOverviewScreen } from './components/screens/ScheduleOverviewScreen';
 import { ScheduledPostsScreen } from './components/screens/ScheduledPostsScreen';
+import { ContentScreen } from './components/screens/ContentScreen';
 import { CalendarScreen } from './components/screens/CalendarScreen';
 import { CreatorsScreen } from './components/screens/CreatorsScreen';
 import { SettingsScreen } from './components/screens/SettingsScreen';
@@ -55,6 +56,7 @@ function AppContent() {
       <main>
         {currentScreen === 'schedule-overview' && <ScheduleOverviewScreen />}
         {currentScreen === 'scheduled-posts' && <ScheduledPostsScreen />}
+        {currentScreen === 'content' && <ContentScreen />}
         {currentScreen === 'calendar' && <CalendarScreen />}
         {currentScreen === 'creators' && <CreatorsScreen />}
         {currentScreen === 'settings' && <SettingsScreen />}

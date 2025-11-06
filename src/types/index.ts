@@ -92,6 +92,7 @@ export interface PostLogEntry {
   timestampUserTZ: string;
   checklistState: ChecklistState;
   notes: string;
+  captionId?: string; // Caption used for this post (TikTok only)
   createdAt: string;
 }
 
