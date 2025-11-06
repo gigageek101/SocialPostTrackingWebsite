@@ -41,14 +41,12 @@ body {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   overflow-x: hidden;
-  position: fixed;
   width: 100%;
 }
 
 #root {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
 }
