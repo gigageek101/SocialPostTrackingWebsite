@@ -17,7 +17,7 @@ export function WorkflowScreen() {
   const totalInstagram = instagramCount * 2; // 2 per account per day
   const totalFacebook = facebookCount * 2; // 2 per account per day
 
-  // Get user's timezone for personalized greeting
+  // Get user's timezone display
   const userTimezone = state.userSettings?.userTimezone || 'Unknown';
   const location = userTimezone.split('/')[1]?.replace(/_/g, ' ') || userTimezone;
 
@@ -28,10 +28,13 @@ export function WorkflowScreen() {
         <Card className="shadow-xl mb-8 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
           <div className="text-center">
             <h1 className="text-4xl font-black mb-3">
-              👋 Welcome, {location} User!
+              👋 Welcome!
             </h1>
             <p className="text-lg text-indigo-100">
               Your Recommended Social Media Workflow
+            </p>
+            <p className="text-sm text-indigo-200 mt-2">
+              Timezone: {location}
             </p>
           </div>
         </Card>
@@ -103,8 +106,16 @@ export function WorkflowScreen() {
             <div className="p-4 bg-orange-50 rounded-xl border-2 border-orange-200">
               <h3 className="font-bold text-orange-900 mb-2">2. Content Preparation</h3>
               <p className="text-sm text-orange-800 mb-3">
-                Prepare content for tomorrow's posts:
+                Prepare content for:
               </p>
+              <div className="bg-orange-100 p-3 rounded-lg mb-3 border-l-4 border-orange-400">
+                <p className="text-sm font-semibold text-orange-900">
+                  📅 <strong>Today's Evening Shift</strong> + <strong>Tomorrow's Morning Shift</strong>
+                </p>
+                <p className="text-xs text-orange-700 mt-1">
+                  This ensures you always have content ready for the next posting sessions
+                </p>
+              </div>
               
               <div className="space-y-3">
                 {tiktokCount > 0 && (

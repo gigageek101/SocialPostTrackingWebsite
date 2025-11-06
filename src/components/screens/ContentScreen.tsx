@@ -5,8 +5,9 @@ import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { PlatformIcon } from '../ui/PlatformIcon';
 import { PLATFORM_NAMES } from '../../constants/platforms';
-import { FileText, Plus, Trash2, Copy, Check, RotateCcw } from 'lucide-react';
+import { FileText, Plus, Trash2, Copy, Check, RotateCcw, Calendar, Sunrise, Sunset } from 'lucide-react';
 import { parseCaptionText } from '../../utils/captionParser';
+import { format, addDays } from 'date-fns';
 
 export function ContentScreen() {
   const { state, updateAccount } = useApp();
@@ -60,15 +61,55 @@ export function ContentScreen() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  // Get today and tomorrow dates
+  const today = new Date();
+  const tomorrow = addDays(today, 1);
+  const todayStr = format(today, 'MMMM d');
+  const tomorrowStr = format(tomorrow, 'MMMM d');
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
       <div className="max-w-6xl mx-auto py-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-black text-gray-900 mb-2">Content Management</h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 mb-4">
             Manage captions for your TikTok posts. Paste formatted captions and they'll be auto-assigned when you post.
           </p>
+          
+          {/* Content Preparation Timeline */}
+          <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-200">
+            <div className="flex items-start gap-3">
+              <Calendar className="w-6 h-6 text-indigo-600 mt-1 flex-shrink-0" />
+              <div className="flex-1">
+                <h3 className="font-bold text-indigo-900 mb-2">📅 Content Preparation Schedule</h3>
+                <p className="text-sm text-indigo-800 mb-3">
+                  Prepare captions for the next posting sessions:
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="bg-white p-3 rounded-lg border-l-4 border-orange-400">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Sunset className="w-5 h-5 text-orange-600" />
+                      <span className="font-semibold text-gray-900">Today Evening Shift</span>
+                    </div>
+                    <p className="text-xs text-gray-600">{todayStr} • After 2:00 PM</p>
+                    <p className="text-xs text-orange-600 font-medium mt-1">3 captions needed per account</p>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg border-l-4 border-blue-400">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Sunrise className="w-5 h-5 text-blue-600" />
+                      <span className="font-semibold text-gray-900">Tomorrow Morning Shift</span>
+                    </div>
+                    <p className="text-xs text-gray-600">{tomorrowStr} • Before 2:00 PM</p>
+                    <p className="text-xs text-blue-600 font-medium mt-1">3 captions needed per account</p>
+                  </div>
+                </div>
+                <p className="text-xs text-indigo-700 mt-3">
+                  💡 Add 6 captions per account below (they'll auto-assign as you post)
+                </p>
+              </div>
+            </div>
+          </Card>
         </div>
 
         {/* No Content */}

@@ -457,20 +457,26 @@ export function ScheduleOverviewScreen() {
                                     </span>
                                   </div>
                                   
-                                  {/* Slides Preview */}
+                                  {/* Slides - Each with Copy Button */}
                                   <div className="mb-3">
                                     <p className="text-xs text-purple-600 font-semibold mb-2">Slides ({nextCaption.slides.length}):</p>
-                                    <div className="space-y-1 max-h-32 overflow-y-auto">
-                                      {nextCaption.slides.slice(0, 3).map((slide, i) => (
-                                        <div key={i} className="text-sm text-gray-700 bg-white p-2 rounded">
-                                          {i + 1}. {slide.length > 50 ? slide.substring(0, 50) + '...' : slide}
+                                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                                      {nextCaption.slides.map((slide, i) => (
+                                        <div key={i} className="flex items-start gap-2 bg-white p-2 rounded-lg border border-purple-200">
+                                          <span className="text-xs font-bold text-purple-500 mt-1 flex-shrink-0">{i + 1}.</span>
+                                          <p className="text-sm text-gray-800 flex-1">{slide}</p>
+                                          <button
+                                            onClick={() => copyToClipboard(slide, `today-slide-${i}`)}
+                                            className="p-1 hover:bg-purple-100 rounded transition-colors flex-shrink-0"
+                                          >
+                                            {copiedText === `today-slide-${i}` ? (
+                                              <CheckCircle className="w-4 h-4 text-green-600" />
+                                            ) : (
+                                              <Copy className="w-4 h-4 text-purple-600" />
+                                            )}
+                                          </button>
                                         </div>
                                       ))}
-                                      {nextCaption.slides.length > 3 && (
-                                        <div className="text-xs text-purple-600 font-semibold">
-                                          +{nextCaption.slides.length - 3} more slides...
-                                        </div>
-                                      )}
                                     </div>
                                   </div>
 
