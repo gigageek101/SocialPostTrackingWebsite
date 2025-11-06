@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card } from '../ui/Card';
 import { PlatformIcon } from '../ui/PlatformIcon';
-import { PLATFORM_NAMES } from '../../constants/platforms';
+import { PLATFORM_NAMES, PLATFORM_BASE_TIMES } from '../../constants/platforms';
 import { format } from 'date-fns';
-import { Clock, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Clock, CheckCircle, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { PostLogEntry } from '../../types';
 
 export function ScheduledPostsScreen() {
@@ -43,14 +43,25 @@ export function ScheduledPostsScreen() {
   const eveningPosts: PostLogEntry[] = [];
 
   todayPosts.forEach(post => {
-    const postTime = new Date(post.timestampUTC);
-    const hour = postTime.getUTCHours();
+    // Use the creator time (US time) to determine shift, not UTC
+    const creatorTimeStr = post.timestampCreatorTZ; // e.g., "Nov 6, 3:00 AM" or "Nov 6, 3:00 PM"
+    const isPM = creatorTimeStr.includes('PM');
+    const timeMatch = creatorTimeStr.match(/(\d+):(\d+)/);
     
-    // Morning shift: before 14:00 UTC, Evening: 14:00 and after
-    if (hour < 14) {
-      morningPosts.push(post);
+    if (timeMatch) {
+      let hour = parseInt(timeMatch[1]);
+      if (isPM && hour !== 12) hour += 12;
+      if (!isPM && hour === 12) hour = 0;
+      
+      // Morning shift: before 2:00 PM (14:00), Evening: 2:00 PM and after
+      if (hour < 14) {
+        morningPosts.push(post);
+      } else {
+        eveningPosts.push(post);
+      }
     } else {
-      eveningPosts.push(post);
+      // Fallback if parsing fails
+      morningPosts.push(post);
     }
   });
 
@@ -202,6 +213,73 @@ export function ScheduledPostsScreen() {
             Only showing posts you've actually made today • Click to expand for details
           </p>
         </div>
+
+        {/* Recommended Schedule Info */}
+        <Card className="shadow-lg mb-6 bg-blue-50 border-2 border-blue-200">
+          <div className="flex items-start gap-4">
+            <Info className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
+            <div className="flex-1">
+              <h3 className="text-xl font-bold text-blue-900 mb-3">📋 Recommended Posting Schedule</h3>
+              <p className="text-sm text-blue-800 mb-4">
+                These are the base recommended times. The app auto-adjusts after each post (adds cooldown).
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* TikTok */}
+                <div className="bg-white rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <PlatformIcon platform="tiktok" className="w-5 h-5" />
+                    <h4 className="font-bold text-gray-900">TikTok (6 posts/day)</h4>
+                  </div>
+                  <div className="text-sm text-gray-700 space-y-1">
+                    <p><strong>Morning:</strong> {PLATFORM_BASE_TIMES.tiktok.slice(0, 3).join(', ')} (Bangkok)</p>
+                    <p><strong>Evening:</strong> {PLATFORM_BASE_TIMES.tiktok.slice(3).join(', ')} (Bangkok)</p>
+                    <p className="text-xs text-orange-600">⏱️ 2-hour cooldown between posts</p>
+                  </div>
+                </div>
+
+                {/* Threads */}
+                <div className="bg-white rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <PlatformIcon platform="threads" className="w-5 h-5" />
+                    <h4 className="font-bold text-gray-900">Threads (6 posts/day)</h4>
+                  </div>
+                  <div className="text-sm text-gray-700 space-y-1">
+                    <p><strong>Morning:</strong> {PLATFORM_BASE_TIMES.threads.slice(0, 3).join(', ')} (Bangkok)</p>
+                    <p><strong>Evening:</strong> {PLATFORM_BASE_TIMES.threads.slice(3).join(', ')} (Bangkok)</p>
+                    <p className="text-xs text-orange-600">⏱️ 2-hour cooldown between posts</p>
+                  </div>
+                </div>
+
+                {/* Instagram */}
+                <div className="bg-white rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <PlatformIcon platform="instagram" className="w-5 h-5" />
+                    <h4 className="font-bold text-gray-900">Instagram (2 posts/day)</h4>
+                  </div>
+                  <div className="text-sm text-gray-700 space-y-1">
+                    <p><strong>Morning:</strong> {PLATFORM_BASE_TIMES.instagram.morning} (US Central)</p>
+                    <p><strong>Evening:</strong> {PLATFORM_BASE_TIMES.instagram.evening} (US Central)</p>
+                    <p className="text-xs text-gray-500">No cooldown</p>
+                  </div>
+                </div>
+
+                {/* Facebook */}
+                <div className="bg-white rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <PlatformIcon platform="facebook" className="w-5 h-5" />
+                    <h4 className="font-bold text-gray-900">Facebook (2 posts/day)</h4>
+                  </div>
+                  <div className="text-sm text-gray-700 space-y-1">
+                    <p><strong>Morning:</strong> {PLATFORM_BASE_TIMES.facebook.morning} (US Central)</p>
+                    <p><strong>Evening:</strong> {PLATFORM_BASE_TIMES.facebook.evening} (US Central)</p>
+                    <p className="text-xs text-gray-500">No cooldown</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
 
         {todayPosts.length === 0 && (
           <Card className="text-center p-12">
