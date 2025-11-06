@@ -132,7 +132,16 @@ export function ContentScreen() {
             const captions = account.captions || [];
             const platformAccounts = state.accounts.filter(a => a.platform === account.platform);
             const accountIndex = platformAccounts.findIndex(a => a.id === account.id) + 1;
-            const unusedCount = captions.filter(c => !c.used).length;
+            
+            // Split captions: first 3 = today evening, next 3 = tomorrow morning
+            const eveningCaptions = captions.slice(0, 3);
+            const morningCaptions = captions.slice(3, 6);
+            
+            const eveningUnused = eveningCaptions.filter(c => !c.used).length;
+            const morningUnused = morningCaptions.filter(c => !c.used).length;
+            
+            const eveningNeeded = 3 - eveningCaptions.length;
+            const morningNeeded = 3 - morningCaptions.length;
 
             return (
               <Card key={account.id} className="shadow-lg">
@@ -151,29 +160,65 @@ export function ContentScreen() {
                       <div className="text-3xl font-black text-blue-600">
                         {captions.length}/6
                       </div>
-                      <p className="text-xs text-gray-600">{unusedCount} unused</p>
+                      <p className="text-xs text-gray-600">Total captions</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Captions */}
-                {captions.length === 0 ? (
-                  <div className="text-center py-8">
-                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                    <p className="text-gray-600 mb-4">No captions yet</p>
-                    <Button
-                      onClick={() => {
-                        setSelectedAccountId(account.id);
-                        setShowAddModal(true);
-                      }}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Captions
-                    </Button>
+                {/* Today Evening Shift */}
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-3 pb-2 border-b-2 border-orange-300">
+                    <div className="flex items-center gap-2">
+                      <Sunset className="w-6 h-6 text-orange-600" />
+                      <h3 className="text-xl font-bold text-gray-900">Today Evening Shift</h3>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-orange-600">{todayStr}</p>
+                      <p className="text-xs text-gray-600">After 2:00 PM</p>
+                    </div>
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    {captions.map((caption, index) => (
+
+                  <div className="p-3 bg-orange-50 rounded-lg mb-3 border-l-4 border-orange-400">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-orange-900">
+                          {eveningCaptions.length}/3 captions prepared
+                        </p>
+                        {eveningNeeded > 0 && (
+                          <p className="text-xs text-orange-700 mt-1">
+                            ⚠️ <strong>{eveningNeeded} caption{eveningNeeded > 1 ? 's' : ''} missing!</strong>
+                          </p>
+                        )}
+                        {eveningCaptions.length === 3 && (
+                          <p className="text-xs text-green-700 mt-1">
+                            ✓ All captions ready • {eveningUnused} unused
+                          </p>
+                        )}
+                      </div>
+                      {eveningNeeded > 0 && (
+                        <Button
+                          onClick={() => {
+                            setSelectedAccountId(account.id);
+                            setShowAddModal(true);
+                          }}
+                          size="sm"
+                          className="bg-orange-600 hover:bg-orange-700"
+                        >
+                          <Plus className="w-4 h-4 mr-1" />
+                          Add
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {eveningCaptions.length === 0 ? (
+                    <div className="text-center py-6 bg-gray-50 rounded-lg">
+                      <FileText className="w-10 h-10 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-600">No evening shift captions yet</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {eveningCaptions.map((caption, index) => (
                       <div
                         key={caption.id}
                         className={`border-2 rounded-lg p-4 ${
@@ -237,35 +282,159 @@ export function ContentScreen() {
                           </div>
                         </div>
                       </div>
-                    ))}
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-                    <div className="flex gap-3">
-                      {captions.length < 6 && (
+                {/* Tomorrow Morning Shift */}
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-3 pb-2 border-b-2 border-blue-300">
+                    <div className="flex items-center gap-2">
+                      <Sunrise className="w-6 h-6 text-blue-600" />
+                      <h3 className="text-xl font-bold text-gray-900">Tomorrow Morning Shift</h3>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-blue-600">{tomorrowStr}</p>
+                      <p className="text-xs text-gray-600">Before 2:00 PM</p>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-blue-50 rounded-lg mb-3 border-l-4 border-blue-400">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-blue-900">
+                          {morningCaptions.length}/3 captions prepared
+                        </p>
+                        {morningNeeded > 0 && (
+                          <p className="text-xs text-blue-700 mt-1">
+                            ⚠️ <strong>{morningNeeded} caption{morningNeeded > 1 ? 's' : ''} missing!</strong>
+                          </p>
+                        )}
+                        {morningCaptions.length === 3 && (
+                          <p className="text-xs text-green-700 mt-1">
+                            ✓ All captions ready • {morningUnused} unused
+                          </p>
+                        )}
+                      </div>
+                      {morningNeeded > 0 && (
                         <Button
                           onClick={() => {
                             setSelectedAccountId(account.id);
                             setShowAddModal(true);
                           }}
-                          variant="secondary"
-                          className="flex-1"
+                          size="sm"
+                          className="bg-blue-600 hover:bg-blue-700"
                         >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Add More ({6 - captions.length} slots)
-                        </Button>
-                      )}
-                      {captions.some(c => c.used) && (
-                        <Button
-                          onClick={() => handleResetCaptions(account.id)}
-                          variant="secondary"
-                          className={captions.length < 6 ? '' : 'w-full'}
-                        >
-                          <RotateCcw className="w-4 h-4 mr-2" />
-                          Reset All to Unused
+                          <Plus className="w-4 h-4 mr-1" />
+                          Add
                         </Button>
                       )}
                     </div>
                   </div>
-                )}
+
+                  {morningCaptions.length === 0 ? (
+                    <div className="text-center py-6 bg-gray-50 rounded-lg">
+                      <FileText className="w-10 h-10 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-600">No morning shift captions yet</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {morningCaptions.map((caption, index) => (
+                        <div
+                          key={caption.id}
+                          className={`border-2 rounded-lg p-4 ${
+                            caption.used ? 'bg-gray-100 border-gray-300' : 'bg-white border-blue-300'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg font-bold text-gray-900">Caption {index + 1 + 3}</span>
+                              {caption.used && (
+                                <span className="px-2 py-1 bg-gray-600 text-white text-xs rounded-full">Used</span>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => handleDeleteCaption(account.id, caption.id)}
+                              className="p-2 hover:bg-red-100 rounded-lg transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                            </button>
+                          </div>
+
+                          {/* Slides */}
+                          <div className="space-y-2 mb-3">
+                            <p className="text-sm font-semibold text-gray-700">Slides ({caption.slides.length}):</p>
+                            {caption.slides.map((slide, i) => (
+                              <div key={i} className="flex items-start gap-2 bg-gray-50 p-2 rounded">
+                                <span className="text-xs font-bold text-gray-500 mt-1">{i + 1}.</span>
+                                <p className="text-sm text-gray-800 flex-1">{slide}</p>
+                                <button
+                                  onClick={() => copyToClipboard(slide, `${caption.id}-slide-${i}`)}
+                                  className="p-1 hover:bg-gray-200 rounded transition-colors flex-shrink-0"
+                                >
+                                  {copiedId === `${caption.id}-slide-${i}` ? (
+                                    <Check className="w-4 h-4 text-green-600" />
+                                  ) : (
+                                    <Copy className="w-4 h-4 text-gray-600" />
+                                  )}
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Title + Hashtags */}
+                          <div className="bg-blue-50 p-3 rounded-lg">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1">
+                                <p className="text-xs font-semibold text-blue-700 mb-1">Title + Hashtags:</p>
+                                <p className="text-sm text-gray-900 font-medium">{caption.title}</p>
+                                <p className="text-sm text-blue-700 mt-1">{caption.hashtags}</p>
+                              </div>
+                              <button
+                                onClick={() => copyToClipboard(`${caption.title}\n\n${caption.hashtags}`, `${caption.id}-title`)}
+                                className="p-2 hover:bg-blue-200 rounded transition-colors flex-shrink-0"
+                              >
+                                {copiedId === `${caption.id}-title` ? (
+                                  <Check className="w-5 h-5 text-green-600" />
+                                ) : (
+                                  <Copy className="w-5 h-5 text-blue-600" />
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-4 border-t-2 border-gray-200">
+                  {captions.length < 6 && (
+                    <Button
+                      onClick={() => {
+                        setSelectedAccountId(account.id);
+                        setShowAddModal(true);
+                      }}
+                      variant="secondary"
+                      className="flex-1"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add More ({6 - captions.length} slots)
+                    </Button>
+                  )}
+                  {captions.some(c => c.used) && (
+                    <Button
+                      onClick={() => handleResetCaptions(account.id)}
+                      variant="secondary"
+                      className={captions.length < 6 ? '' : 'w-full'}
+                    >
+                      <RotateCcw className="w-4 h-4 mr-2" />
+                      Reset All to Unused
+                    </Button>
+                  )}
+                </div>
               </Card>
             );
           })}
