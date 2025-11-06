@@ -183,16 +183,53 @@ export function getAllRecommendedPosts(
     }
   }
   
-  // Sort by availability and time
-  // All times are recommendations - you can post anytime
+  // Sort by availability and time with special positioning for Instagram/Facebook
+  // Morning: IG/FB right after first TikTok/Threads
+  // Evening: IG/FB at the end after all TikTok/Threads
   recommendations.sort((a, b) => {
     // First priority: Not in cooldown (cooldown is the only real blocker)
     if (a.isDuringCooldown !== b.isDuringCooldown) {
       return a.isDuringCooldown ? 1 : -1; // Not in cooldown comes first
     }
     
-    // Second priority: Earliest recommended time (chronological order)
-    // This shows posts in order regardless of whether they're past/present/future
+    // Second priority: Shift separation (morning vs evening)
+    if (a.shift !== b.shift) {
+      return a.shift === 'morning' ? -1 : 1; // Morning first
+    }
+    
+    // Third priority: Platform-based ordering within each shift
+    const platformOrder = (rec: RecommendedPost): number => {
+      if (rec.shift === 'morning') {
+        // Morning: TikTok/Threads post 1, then IG/FB, then TikTok/Threads 2+
+        if (rec.platform === 'tiktok' && rec.postNumber === 1) return 1;
+        if (rec.platform === 'threads' && rec.postNumber === 1) return 2;
+        if (rec.platform === 'instagram') return 3;
+        if (rec.platform === 'facebook') return 4;
+        if (rec.platform === 'tiktok') return 5;
+        if (rec.platform === 'threads') return 6;
+      } else {
+        // Evening: TikTok/Threads first, then IG/FB at end
+        if (rec.platform === 'tiktok') return 1;
+        if (rec.platform === 'threads') return 2;
+        if (rec.platform === 'instagram') return 3;
+        if (rec.platform === 'facebook') return 4;
+      }
+      return 999;
+    };
+    
+    const orderA = platformOrder(a);
+    const orderB = platformOrder(b);
+    
+    if (orderA !== orderB) {
+      return orderA - orderB;
+    }
+    
+    // Fourth priority: Post number within same platform
+    if (a.platform === b.platform && a.postNumber !== b.postNumber) {
+      return a.postNumber - b.postNumber;
+    }
+    
+    // Final: Earliest recommended time
     return a.recommendedTimeUTC.localeCompare(b.recommendedTimeUTC);
   });
   

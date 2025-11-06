@@ -3,7 +3,7 @@ import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { PostChecklistModal } from '../PostChecklistModal';
 import { PlatformIcon } from '../ui/PlatformIcon';
-import { Clock, TrendingUp, CheckCircle, RefreshCw } from 'lucide-react';
+import { Clock, TrendingUp, CheckCircle, RefreshCw, ExternalLink, AlertTriangle, Copy } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ChecklistState } from '../../types';
 import { format } from 'date-fns';
@@ -18,6 +18,7 @@ export function ScheduleOverviewScreen() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [refreshCounter, setRefreshCounter] = useState(0); // Force refresh counter
   const [lastRecommendationId, setLastRecommendationId] = useState<string | null>(null);
+  const [copiedText, setCopiedText] = useState<string | null>(null);
 
   useEffect(() => {
     // Update current time every second (also triggers recommendations refresh)
@@ -176,6 +177,13 @@ export function ScheduleOverviewScreen() {
     const now = new Date();
     const userHour = now.getHours(); // User's local hour
     return userHour < 14 ? 'morning' : 'evening'; // Before 2 PM = morning, after = evening
+  };
+
+  // Copy to clipboard helper
+  const copyToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedText(id);
+    setTimeout(() => setCopiedText(null), 2000);
   };
 
   // Get button config based on timing
@@ -399,6 +407,127 @@ export function ScheduleOverviewScreen() {
                       </div>
                     </div>
                   )}
+
+                  {/* Media Link & Caption Section */}
+                  <div className="mb-6 space-y-4">
+                    {/* Telegram Media Link */}
+                    {account.telegramLink ? (
+                      <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <ExternalLink className="w-5 h-5 text-blue-600" />
+                            <span className="font-semibold text-blue-900">Media Link (Telegram)</span>
+                          </div>
+                          <a
+                            href={account.telegramLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            Open Media
+                          </a>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-red-50 border-2 border-red-200 rounded-xl">
+                        <div className="flex items-center gap-2 text-red-800">
+                          <AlertTriangle className="w-5 h-5" />
+                          <span className="font-semibold">⚠️ No Media Link Set!</span>
+                        </div>
+                        <p className="text-sm text-red-700 mt-2">
+                          Add a Telegram link in Creators → Edit Account to access your post media.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Caption Display for TikTok */}
+                    {nextRecommendation.platform === 'tiktok' && (
+                      <>
+                        {account.captions && account.captions.length > 0 ? (
+                          (() => {
+                            const nextCaption = account.captions.find(c => !c.used);
+                            if (nextCaption) {
+                              return (
+                                <div className="p-4 bg-purple-50 border-2 border-purple-200 rounded-xl">
+                                  <div className="font-semibold text-purple-900 mb-3 flex items-center justify-between">
+                                    <span>📝 Next Caption Ready</span>
+                                    <span className="text-xs bg-purple-200 px-2 py-1 rounded-full">
+                                      {account.captions.filter(c => !c.used).length} unused
+                                    </span>
+                                  </div>
+                                  
+                                  {/* Slides Preview */}
+                                  <div className="mb-3">
+                                    <p className="text-xs text-purple-600 font-semibold mb-2">Slides ({nextCaption.slides.length}):</p>
+                                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                                      {nextCaption.slides.slice(0, 3).map((slide, i) => (
+                                        <div key={i} className="text-sm text-gray-700 bg-white p-2 rounded">
+                                          {i + 1}. {slide.length > 50 ? slide.substring(0, 50) + '...' : slide}
+                                        </div>
+                                      ))}
+                                      {nextCaption.slides.length > 3 && (
+                                        <div className="text-xs text-purple-600 font-semibold">
+                                          +{nextCaption.slides.length - 3} more slides...
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Title + Hashtags */}
+                                  <div className="bg-white p-3 rounded-lg">
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="flex-1">
+                                        <p className="text-xs text-purple-600 font-semibold mb-1">Title + Hashtags:</p>
+                                        <p className="text-sm text-gray-900 font-medium">{nextCaption.title}</p>
+                                        <p className="text-sm text-purple-700 mt-1">{nextCaption.hashtags}</p>
+                                      </div>
+                                      <button
+                                        onClick={() => copyToClipboard(`${nextCaption.title}\n\n${nextCaption.hashtags}`, 'caption-preview')}
+                                        className="p-2 hover:bg-purple-100 rounded transition-colors flex-shrink-0"
+                                      >
+                                        {copiedText === 'caption-preview' ? (
+                                          <CheckCircle className="w-5 h-5 text-green-600" />
+                                        ) : (
+                                          <Copy className="w-5 h-5 text-purple-600" />
+                                        )}
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  <p className="text-xs text-purple-600 mt-2">
+                                    💡 Full caption details available in Content tab
+                                  </p>
+                                </div>
+                              );
+                            } else {
+                              return (
+                                <div className="p-4 bg-yellow-50 border-2 border-yellow-200 rounded-xl">
+                                  <div className="flex items-center gap-2 text-yellow-800">
+                                    <AlertTriangle className="w-5 h-5" />
+                                    <span className="font-semibold">⚠️ All Captions Used!</span>
+                                  </div>
+                                  <p className="text-sm text-yellow-700 mt-2">
+                                    Reset captions in Content tab or add new ones before posting.
+                                  </p>
+                                </div>
+                              );
+                            }
+                          })()
+                        ) : (
+                          <div className="p-4 bg-red-50 border-2 border-red-200 rounded-xl">
+                            <div className="flex items-center gap-2 text-red-800">
+                              <AlertTriangle className="w-5 h-5" />
+                              <span className="font-semibold">⚠️ No Captions Set!</span>
+                            </div>
+                            <p className="text-sm text-red-700 mt-2">
+                              Add captions in Content tab to have them ready for TikTok posts.
+                            </p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
 
                   {/* Post Button - Always Enabled */}
                   <Button
