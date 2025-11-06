@@ -1,0 +1,75 @@
+import { useEffect } from 'react';
+import { AppProvider, useApp } from './context/AppContext';
+import { Navigation } from './components/Navigation';
+import { OnboardingScreen } from './components/screens/OnboardingScreen';
+import { ScheduleOverviewScreen } from './components/screens/ScheduleOverviewScreen';
+import { CalendarScreen } from './components/screens/CalendarScreen';
+import { CreatorsScreen } from './components/screens/CreatorsScreen';
+import { SettingsScreen } from './components/screens/SettingsScreen';
+
+function AppContent() {
+  const { currentScreen, state, getTodayPlan } = useApp();
+
+  // Check for notifications when slots become ready
+  useEffect(() => {
+    if (!state.userSettings?.notificationsEnabled) return;
+
+    const checkNotifications = () => {
+      const plan = getTodayPlan();
+      if (!plan) return;
+
+      plan.slots.forEach((slot) => {
+        if (slot.status === 'pending') {
+          const scheduledTime = new Date(slot.scheduledTimeUTC);
+          const now = new Date();
+          
+          // Notify if within 5 minutes of scheduled time
+          const diff = scheduledTime.getTime() - now.getTime();
+          if (diff > 0 && diff < 5 * 60 * 1000) {
+            const account = state.accounts.find((a) => a.id === slot.accountId);
+            if (account) {
+              // Show notification (would need proper notification scheduling in production)
+              // For now, we just check when user is on the page
+            }
+          }
+        }
+      });
+    };
+
+    // Check every minute
+    const interval = setInterval(checkNotifications, 60000);
+    checkNotifications();
+
+    return () => clearInterval(interval);
+  }, [state.userSettings, state.accounts]);
+
+  if (currentScreen === 'onboarding') {
+    return <OnboardingScreen />;
+  }
+
+  return (
+    <div className="min-h-screen p-4 md:p-6">
+      <div className="max-w-6xl mx-auto">
+        <Navigation />
+        
+        <main>
+          {currentScreen === 'schedule-overview' && <ScheduleOverviewScreen />}
+          {currentScreen === 'calendar' && <CalendarScreen />}
+          {currentScreen === 'creators' && <CreatorsScreen />}
+          {currentScreen === 'settings' && <SettingsScreen />}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <AppProvider>
+      <AppContent />
+    </AppProvider>
+  );
+}
+
+export default App;
+
