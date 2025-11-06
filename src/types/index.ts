@@ -15,6 +15,7 @@ export interface UserSettings {
 // Creator
 export interface Creator {
   id: string;
+  username: string; // Required for Supabase
   name: string;
   timezone: string; // Default: America/Chicago
   profilePicture?: string; // Base64 encoded image

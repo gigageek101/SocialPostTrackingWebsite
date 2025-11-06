@@ -236,8 +236,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const addCreator = (name: string, timezone = DEFAULT_CREATOR_TIMEZONE): Creator => {
+    // NOTE: Creators should only be created through AuthScreen (Supabase)
+    // This function is kept for backward compatibility but should not sync
     const creator: Creator = {
       id: generateId(),
+      username: name.toLowerCase().replace(/\s/g, ''), // Generate username from name
       name,
       timezone,
       createdAt: getCurrentUTC(),
@@ -248,12 +251,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       creators: [...prev.creators, creator],
     }));
     
-    // Sync to Supabase
-    if (state.authState.isAuthenticated) {
-      syncCreator(creator).catch(err => 
-        console.error('Failed to sync creator:', err)
-      );
-    }
+    // DO NOT sync locally-created creators to Supabase
+    // Only creators from AuthScreen should exist in Supabase
+    console.warn('⚠️ Creator created locally - will not sync to Supabase');
     
     return creator;
   };

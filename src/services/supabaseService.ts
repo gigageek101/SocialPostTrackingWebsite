@@ -40,9 +40,12 @@ export async function createCreatorWithPassword(
 
     const creator: Creator = {
       id: data.id,
+      username: data.username,
       name: data.name,
       timezone: data.timezone,
       profilePicture: data.profile_picture,
+      telegramBotToken: data.telegram_bot_token,
+      telegramChatId: data.telegram_chat_id,
       createdAt: data.created_at,
     };
 
@@ -80,9 +83,12 @@ export async function authenticateCreator(
 
     const creator: Creator = {
       id: data.id,
+      username: data.username,
       name: data.name,
       timezone: data.timezone,
       profilePicture: data.profile_picture,
+      telegramBotToken: data.telegram_bot_token,
+      telegramChatId: data.telegram_chat_id,
       createdAt: data.created_at,
     };
 
@@ -120,9 +126,12 @@ export async function syncCreatorData(creatorId: string) {
 
     const creator: Creator = {
       id: creatorsRes.data.id,
+      username: creatorsRes.data.username,
       name: creatorsRes.data.name,
       timezone: creatorsRes.data.timezone,
       profilePicture: creatorsRes.data.profile_picture,
+      telegramBotToken: creatorsRes.data.telegram_bot_token,
+      telegramChatId: creatorsRes.data.telegram_chat_id,
       createdAt: creatorsRes.data.created_at,
     };
 
@@ -312,6 +321,7 @@ export async function syncCreator(creator: Creator): Promise<{ error: string | n
       .from('creators')
       .upsert({
         id: creator.id,
+        username: creator.username,
         name: creator.name,
         timezone: creator.timezone,
         profile_picture: creator.profilePicture,
