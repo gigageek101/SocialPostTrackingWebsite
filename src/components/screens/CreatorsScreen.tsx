@@ -5,7 +5,7 @@ import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { PlatformIcon } from '../ui/PlatformIcon';
-import { Plus, Trash2, User } from 'lucide-react';
+import { Plus, Trash2, User, Smartphone } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { COMMON_TIMEZONES } from '../../utils/timezone';
 import { DEFAULT_CREATOR_TIMEZONE, PLATFORM_NAMES } from '../../constants/platforms';
@@ -27,6 +27,7 @@ export function CreatorsScreen() {
   const [accountHandle, setAccountHandle] = useState('');
   const [accountDevice, setAccountDevice] = useState('');
   const [accountProfileLink, setAccountProfileLink] = useState('');
+  const [showCustomDevice, setShowCustomDevice] = useState(false);
 
   const handleAddCreator = () => {
     if (!creatorName.trim()) return;
@@ -59,7 +60,13 @@ export function CreatorsScreen() {
     setAccountHandle('');
     setAccountDevice('');
     setAccountProfileLink('');
+    setShowCustomDevice(false);
     setShowAccountModal(false);
+  };
+
+  const handleDeviceSelect = (device: string) => {
+    setAccountDevice(device);
+    setShowCustomDevice(false);
   };
 
   const timezoneOptions = COMMON_TIMEZONES.map((tz) => ({
@@ -279,12 +286,66 @@ export function CreatorsScreen() {
             onChange={(e) => setAccountHandle(e.target.value)}
           />
 
-          <Input
-            label="Device"
-            placeholder="e.g., iPhone 12, Samsung S21, iPad Pro"
-            value={accountDevice}
-            onChange={(e) => setAccountDevice(e.target.value)}
-          />
+          {/* Device Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Device {accountDevice && <span className="text-green-600">✓ Selected: {accountDevice}</span>}
+            </label>
+            
+            {!showCustomDevice && state.userSettings && state.userSettings.devicePresets.length > 0 ? (
+              <>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {state.userSettings.devicePresets.map((device) => (
+                    <button
+                      key={device}
+                      type="button"
+                      onClick={() => handleDeviceSelect(device)}
+                      className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
+                        accountDevice === device
+                          ? 'bg-blue-600 border-blue-600 text-white'
+                          : 'bg-white border-gray-300 text-gray-700 hover:border-blue-400 hover:bg-blue-50'
+                      }`}
+                    >
+                      <Smartphone className="w-4 h-4" />
+                      <span className="font-medium">{device}</span>
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCustomDevice(true)}
+                  className="text-sm text-blue-600 hover:text-blue-800 underline"
+                >
+                  + Use a custom device name
+                </button>
+              </>
+            ) : (
+              <div className="space-y-2">
+                <Input
+                  placeholder="e.g., iPhone 12, Samsung S21, iPad Pro"
+                  value={accountDevice}
+                  onChange={(e) => setAccountDevice(e.target.value)}
+                />
+                {state.userSettings && state.userSettings.devicePresets.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCustomDevice(false);
+                      setAccountDevice('');
+                    }}
+                    className="text-sm text-blue-600 hover:text-blue-800 underline"
+                  >
+                    ← Back to device presets
+                  </button>
+                )}
+                {state.userSettings && state.userSettings.devicePresets.length === 0 && (
+                  <p className="text-xs text-gray-500">
+                    Tip: Add device presets in Settings for quick selection!
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
           
           <Input
             label="Profile Link (Optional)"

@@ -24,6 +24,8 @@ interface AppContextType {
   // User settings
   updateUserSettings: (settings: Partial<UserSettings>) => void;
   completeOnboarding: (timezone: string, notificationsEnabled: boolean) => void;
+  addDevicePreset: (deviceName: string) => void;
+  removeDevicePreset: (deviceName: string) => void;
   
   // Creators
   addCreator: (name: string, timezone?: string) => Creator;
@@ -108,12 +110,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }));
   };
 
+  const addDevicePreset = (deviceName: string) => {
+    setState((prev) => ({
+      ...prev,
+      userSettings: prev.userSettings
+        ? {
+            ...prev.userSettings,
+            devicePresets: [...prev.userSettings.devicePresets, deviceName],
+          }
+        : null,
+    }));
+  };
+
+  const removeDevicePreset = (deviceName: string) => {
+    setState((prev) => ({
+      ...prev,
+      userSettings: prev.userSettings
+        ? {
+            ...prev.userSettings,
+            devicePresets: prev.userSettings.devicePresets.filter(d => d !== deviceName),
+          }
+        : null,
+    }));
+  };
+
   const completeOnboarding = (timezone: string, notificationsEnabled: boolean) => {
     const userSettings: UserSettings = {
       id: generateId(),
       userTimezone: timezone,
       notificationsEnabled,
       hideTimesPopup: false,
+      devicePresets: ['iPhone 12', 'iPhone 13', 'iPhone 14', 'Samsung S21', 'Samsung S22', 'iPad Pro'], // Default presets
       createdAt: getCurrentUTC(),
     };
     
@@ -436,6 +463,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setCurrentScreen,
         updateUserSettings,
         completeOnboarding,
+        addDevicePreset,
+        removeDevicePreset,
         addCreator,
         updateCreator,
         deleteCreator,
