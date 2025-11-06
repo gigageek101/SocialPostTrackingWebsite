@@ -256,9 +256,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (state.authState.isAuthenticated) {
         const updatedCreator = updatedCreators.find(c => c.id === id);
         if (updatedCreator) {
-          syncCreator(updatedCreator).catch(err => 
-            console.error('Failed to sync creator update:', err)
-          );
+          console.log('⬆️ Syncing creator update to Supabase:', updatedCreator.name);
+          syncCreator(updatedCreator).then(result => {
+            if (result.error) {
+              console.error('❌ Failed to sync creator update:', result.error);
+              alert(`⚠️ Failed to sync creator update: ${result.error}`);
+            } else {
+              console.log('✅ Creator update synced to cloud');
+            }
+          });
         }
       }
       

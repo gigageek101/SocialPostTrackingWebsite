@@ -317,17 +317,18 @@ export async function syncCreator(creator: Creator): Promise<{ error: string | n
       return { error: 'Supabase not configured' };
     }
 
+    // Use UPDATE instead of UPSERT to avoid password_hash issues
+    // Only update fields that can be changed (not password)
     const { error } = await supabase
       .from('creators')
-      .upsert({
-        id: creator.id,
-        username: creator.username,
+      .update({
         name: creator.name,
         timezone: creator.timezone,
         profile_picture: creator.profilePicture,
         telegram_bot_token: creator.telegramBotToken,
         telegram_chat_id: creator.telegramChatId,
-      }, { onConflict: 'id' });
+      })
+      .eq('id', creator.id);
 
     if (error) {
       console.error('Supabase sync error (creators):', error);
