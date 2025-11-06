@@ -9,7 +9,6 @@ export interface UserSettings {
   userTimezone: string;
   notificationsEnabled: boolean;
   hideTimesPopup: boolean;
-  devicePresets: string[]; // Preset device names for quick selection
   createdAt: string;
 }
 

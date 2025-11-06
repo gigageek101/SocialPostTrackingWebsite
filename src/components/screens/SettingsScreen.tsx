@@ -2,17 +2,15 @@ import { useState } from 'react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Select } from '../ui/Select';
-import { Input } from '../ui/Input';
-import { Settings as SettingsIcon, Download, Upload, Bell, BellOff, Trash2, Smartphone, Plus, X } from 'lucide-react';
+import { Settings as SettingsIcon, Download, Upload, Bell, BellOff, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { COMMON_TIMEZONES } from '../../utils/timezone';
 import { exportData, importData, clearStorage } from '../../utils/storage';
 import { requestNotificationPermission } from '../../utils/helpers';
 
 export function SettingsScreen() {
-  const { state, updateUserSettings, importData: handleImport, addDevicePreset, removeDevicePreset } = useApp();
+  const { state, updateUserSettings, importData: handleImport } = useApp();
   const [importing, setImporting] = useState(false);
-  const [newDevice, setNewDevice] = useState('');
 
   if (!state.userSettings) return null;
   
@@ -74,18 +72,6 @@ export function SettingsScreen() {
     label: tz.replace(/_/g, ' '),
   }));
 
-  const handleAddDevice = () => {
-    if (!newDevice.trim()) return;
-    addDevicePreset(newDevice.trim());
-    setNewDevice('');
-  };
-
-  const handleRemoveDevice = (deviceName: string) => {
-    if (confirm(`Remove "${deviceName}" from device presets?`)) {
-      removeDevicePreset(deviceName);
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -127,55 +113,6 @@ export function SettingsScreen() {
               {userSettings.notificationsEnabled ? 'Disable' : 'Enable'}
             </Button>
           </div>
-        </div>
-      </Card>
-
-      {/* Device Management */}
-      <Card>
-        <div className="flex items-center gap-2 mb-4">
-          <Smartphone className="w-6 h-6 text-blue-600" />
-          <h2 className="text-xl font-bold text-gray-900">Device Presets</h2>
-        </div>
-        <p className="text-sm text-gray-600 mb-4">
-          Manage preset device names for quick selection when adding accounts
-        </p>
-
-        {/* Add New Device */}
-        <div className="flex gap-2 mb-4">
-          <Input
-            placeholder="e.g., iPhone 15 Pro, Samsung S24"
-            value={newDevice}
-            onChange={(e) => setNewDevice(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleAddDevice()}
-          />
-          <Button onClick={handleAddDevice} disabled={!newDevice.trim()}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add
-          </Button>
-        </div>
-
-        {/* Device Tags */}
-        <div className="flex flex-wrap gap-2">
-          {userSettings.devicePresets.length === 0 ? (
-            <p className="text-sm text-gray-500 italic">No device presets yet. Add some above!</p>
-          ) : (
-            userSettings.devicePresets.map((device) => (
-              <div
-                key={device}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 border-2 border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
-              >
-                <Smartphone className="w-4 h-4 text-blue-600" />
-                <span className="font-medium text-blue-900">{device}</span>
-                <button
-                  onClick={() => handleRemoveDevice(device)}
-                  className="ml-2 text-blue-600 hover:text-red-600 transition-colors"
-                  title="Remove device"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ))
-          )}
         </div>
       </Card>
 
