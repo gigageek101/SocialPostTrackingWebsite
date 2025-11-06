@@ -5,7 +5,7 @@ import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { PlatformIcon } from '../ui/PlatformIcon';
 import { PLATFORM_NAMES } from '../../constants/platforms';
-import { FileText, Plus, Trash2, Copy, Check } from 'lucide-react';
+import { FileText, Plus, Trash2, Copy, Check, RotateCcw } from 'lucide-react';
 import { parseCaptionText } from '../../utils/captionParser';
 
 export function ContentScreen() {
@@ -44,6 +44,14 @@ export function ContentScreen() {
 
     const updatedCaptions = account.captions.filter(c => c.id !== captionId);
     updateAccount(accountId, { captions: updatedCaptions });
+  };
+
+  const handleResetCaptions = (accountId: string) => {
+    const account = state.accounts.find(a => a.id === accountId);
+    if (!account || !account.captions) return;
+
+    const resetCaptions = account.captions.map(c => ({ ...c, used: false }));
+    updateAccount(accountId, { captions: resetCaptions });
   };
 
   const copyToClipboard = (text: string, id: string) => {
@@ -190,19 +198,31 @@ export function ContentScreen() {
                       </div>
                     ))}
 
-                    {captions.length < 6 && (
-                      <Button
-                        onClick={() => {
-                          setSelectedAccountId(account.id);
-                          setShowAddModal(true);
-                        }}
-                        variant="secondary"
-                        className="w-full"
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add More Captions ({6 - captions.length} slots available)
-                      </Button>
-                    )}
+                    <div className="flex gap-3">
+                      {captions.length < 6 && (
+                        <Button
+                          onClick={() => {
+                            setSelectedAccountId(account.id);
+                            setShowAddModal(true);
+                          }}
+                          variant="secondary"
+                          className="flex-1"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add More ({6 - captions.length} slots)
+                        </Button>
+                      )}
+                      {captions.some(c => c.used) && (
+                        <Button
+                          onClick={() => handleResetCaptions(account.id)}
+                          variant="secondary"
+                          className={captions.length < 6 ? '' : 'w-full'}
+                        >
+                          <RotateCcw className="w-4 h-4 mr-2" />
+                          Reset All to Unused
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 )}
               </Card>
