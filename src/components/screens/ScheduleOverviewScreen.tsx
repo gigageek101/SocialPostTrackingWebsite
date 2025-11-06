@@ -27,14 +27,18 @@ export function ScheduleOverviewScreen() {
   
   // Force re-render when posts are logged to immediately show next recommendation
   useEffect(() => {
-    // Force a state update to trigger recalculation of recommendations
-    // This ensures the next post shows immediately after logging
-    const timer = setTimeout(() => {
-      setCurrentTime(new Date());
-    }, 50); // Small delay to ensure state is updated
+    // Aggressive refresh: force multiple state updates to ensure recalculation
+    setCurrentTime(new Date()); // Immediate
+    const timer1 = setTimeout(() => setCurrentTime(new Date()), 50);
+    const timer2 = setTimeout(() => setCurrentTime(new Date()), 150);
+    const timer3 = setTimeout(() => setCurrentTime(new Date()), 300);
     
-    return () => clearTimeout(timer);
-  }, [state.postLogs]);
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+    };
+  }, [state.postLogs.length]); // Use length to detect changes
 
   if (!state.userSettings || state.creators.length === 0 || state.accounts.length === 0) {
     return (
@@ -83,14 +87,26 @@ export function ScheduleOverviewScreen() {
       const creator = state.creators.find(c => c.id === account?.creatorId);
       
       if (account && creator) {
+        // Close modal first
+        setShowChecklist(false);
+        setSelectedRecommendation(null);
+        
         // Log the post without a slot ID (dynamic posting)
         logPost(undefined, checklistState, notes, account.id, account.platform);
         
-        // Close modal immediately
-        setShowChecklist(false);
-        setSelectedRecommendation(null);
+        // Force immediate recalculation of recommendations
+        setTimeout(() => setCurrentTime(new Date()), 0);
+        setTimeout(() => setCurrentTime(new Date()), 100);
+        setTimeout(() => setCurrentTime(new Date()), 250);
       }
     }
+  };
+
+  // Determine shift based on USER's current local time (not platform time)
+  const getUserShift = (): 'morning' | 'evening' => {
+    const now = new Date();
+    const userHour = now.getHours(); // User's local hour
+    return userHour < 14 ? 'morning' : 'evening'; // Before 2 PM = morning, after = evening
   };
 
   // Get button config based on timing
@@ -307,7 +323,7 @@ export function ScheduleOverviewScreen() {
                     size="lg"
                     className={`text-lg px-8 py-6 rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all ${buttonConfig.className} mb-4`}
                   >
-                    ✓ I Just Made {postLabel} Post of {nextRecommendation.shift.charAt(0).toUpperCase() + nextRecommendation.shift.slice(1)} Shift
+                    ✓ I Just Made {postLabel} Post of {getUserShift().charAt(0).toUpperCase() + getUserShift().slice(1)} Shift
                   </Button>
 
                   {/* Timing feedback */}

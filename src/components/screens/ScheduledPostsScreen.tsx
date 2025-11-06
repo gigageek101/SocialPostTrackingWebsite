@@ -50,17 +50,17 @@ export function ScheduledPostsScreen() {
   const eveningPosts: PostLogEntry[] = [];
 
   todayPosts.forEach(post => {
-    // Use the creator time (US time) to determine shift, not UTC
-    const creatorTimeStr = post.timestampCreatorTZ; // e.g., "Nov 6, 3:00 AM" or "Nov 6, 3:00 PM"
-    const isPM = creatorTimeStr.includes('PM');
-    const timeMatch = creatorTimeStr.match(/(\d+):(\d+)/);
+    // Use the USER'S local time to determine shift (not US time)
+    const userTimeStr = post.timestampUserTZ; // e.g., "Nov 6, 3:00 AM" or "Nov 6, 3:00 PM"
+    const isPM = userTimeStr.includes('PM');
+    const timeMatch = userTimeStr.match(/(\d+):(\d+)/);
     
     if (timeMatch) {
       let hour = parseInt(timeMatch[1]);
       if (isPM && hour !== 12) hour += 12;
       if (!isPM && hour === 12) hour = 0;
       
-      // Morning shift: before 2:00 PM (14:00), Evening: 2:00 PM and after
+      // Morning shift: before 2:00 PM (14:00) USER TIME, Evening: 2:00 PM and after USER TIME
       if (hour < 14) {
         morningPosts.push(post);
       } else {
