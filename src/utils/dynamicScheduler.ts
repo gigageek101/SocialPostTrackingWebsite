@@ -99,6 +99,11 @@ export function getNextRecommendedPost(
   const recommendedDate = new Date(recommendedTimeUTC);
   const minutesUntilRecommended = Math.round((recommendedDate.getTime() - now.getTime()) / 1000 / 60);
   
+  // Don't show if recommended time was more than 4 hours ago (240 minutes)
+  if (minutesUntilRecommended < -240) {
+    return null; // Too old, skip this recommendation
+  }
+  
   const isReady = minutesUntilRecommended <= 0; // Past recommended time
   const isTooEarly = minutesUntilRecommended > 15; // More than 15 min early
   const isPerfectTime = minutesUntilRecommended >= -15 && minutesUntilRecommended <= 15; // Within ±15 min
