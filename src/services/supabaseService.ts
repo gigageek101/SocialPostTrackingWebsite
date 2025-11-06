@@ -225,3 +225,191 @@ export function subscribeToCreatorChanges(
   return channel;
 }
 
+// =============================================
+// Data Fetching
+// =============================================
+
+export async function fetchCreatorData(creatorId: string): Promise<{
+  creator: Creator | null;
+  accounts: PlatformAccount[];
+  postLogs: PostLogEntry[];
+  userSettings: UserSettings | null;
+  error: string | null;
+}> {
+  try {
+    if (!isSupabaseConfigured()) {
+      return { creator: null, accounts: [], postLogs: [], userSettings: null, error: 'Supabase not configured' };
+    }
+
+    const result = await syncCreatorData(creatorId);
+    if (result.error || !result.data) {
+      return { creator: null, accounts: [], postLogs: [], userSettings: null, error: result.error };
+    }
+
+    // Map captions to accounts
+    const accountsWithCaptions = result.data.accounts.map(account => {
+      const accountCaptions = result.data!.captions.filter((cap: any) => cap.accountId === account.id);
+      return {
+        ...account,
+        captions: accountCaptions.length > 0 ? accountCaptions : undefined,
+      };
+    });
+
+    return {
+      creator: result.data.creator,
+      accounts: accountsWithCaptions,
+      postLogs: result.data.postLogs,
+      userSettings: result.data.userSettings,
+      error: null,
+    };
+  } catch (err: any) {
+    return { creator: null, accounts: [], postLogs: [], userSettings: null, error: err.message };
+  }
+}
+
+// =============================================
+// Data Syncing (Upsert)
+// =============================================
+
+export async function syncUserSettings(settings: UserSettings): Promise<{ error: string | null }> {
+  try {
+    if (!isSupabaseConfigured()) {
+      return { error: 'Supabase not configured' };
+    }
+
+    const { error } = await supabase
+      .from('user_settings')
+      .upsert({
+        creator_id: settings.id,
+        user_timezone: settings.userTimezone,
+        notifications_enabled: settings.notificationsEnabled,
+        hide_times_popup: settings.hideTimesPopup,
+      }, { onConflict: 'creator_id' });
+
+    if (error) {
+      console.error('Supabase sync error (user_settings):', error);
+      return { error: error.message };
+    }
+
+    return { error: null };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}
+
+export async function syncCreator(creator: Creator): Promise<{ error: string | null }> {
+  try {
+    if (!isSupabaseConfigured()) {
+      return { error: 'Supabase not configured' };
+    }
+
+    const { error } = await supabase
+      .from('creators')
+      .upsert({
+        id: creator.id,
+        name: creator.name,
+        timezone: creator.timezone,
+        profile_picture: creator.profilePicture,
+        telegram_bot_token: creator.telegramBotToken,
+        telegram_chat_id: creator.telegramChatId,
+      }, { onConflict: 'id' });
+
+    if (error) {
+      console.error('Supabase sync error (creators):', error);
+      return { error: error.message };
+    }
+
+    return { error: null };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}
+
+export async function syncPlatformAccount(account: PlatformAccount): Promise<{ error: string | null }> {
+  try {
+    if (!isSupabaseConfigured()) {
+      return { error: 'Supabase not configured' };
+    }
+
+    const { error } = await supabase
+      .from('accounts')
+      .upsert({
+        id: account.id,
+        creator_id: account.creatorId,
+        platform: account.platform,
+        handle: account.handle,
+        device: account.device,
+        profile_link: account.profileLink,
+        telegram_link: account.telegramLink,
+      }, { onConflict: 'id' });
+
+    if (error) {
+      console.error('Supabase sync error (accounts):', error);
+      return { error: error.message };
+    }
+
+    return { error: null };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}
+
+export async function syncPostLog(log: PostLogEntry): Promise<{ error: string | null }> {
+  try {
+    if (!isSupabaseConfigured()) {
+      return { error: 'Supabase not configured' };
+    }
+
+    const { error } = await supabase
+      .from('post_logs')
+      .upsert({
+        id: log.id,
+        account_id: log.accountId,
+        platform: log.platform,
+        timestamp_utc: log.timestampUTC,
+        timestamp_creator_tz: log.timestampCreatorTZ,
+        timestamp_user_tz: log.timestampUserTZ,
+        checklist_state: log.checklistState,
+        notes: log.notes,
+        caption_id: log.captionId,
+      }, { onConflict: 'id' });
+
+    if (error) {
+      console.error('Supabase sync error (post_logs):', error);
+      return { error: error.message };
+    }
+
+    return { error: null };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}
+
+export async function syncCaption(caption: Caption, accountId: string): Promise<{ error: string | null }> {
+  try {
+    if (!isSupabaseConfigured()) {
+      return { error: 'Supabase not configured' };
+    }
+
+    const { error } = await supabase
+      .from('captions')
+      .upsert({
+        id: caption.id,
+        account_id: accountId,
+        slides: caption.slides,
+        title: caption.title,
+        hashtags: caption.hashtags,
+        used: caption.used,
+      }, { onConflict: 'id' });
+
+    if (error) {
+      console.error('Supabase sync error (captions):', error);
+      return { error: error.message };
+    }
+
+    return { error: null };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}
+

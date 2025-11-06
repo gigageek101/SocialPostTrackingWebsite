@@ -19,6 +19,14 @@ import { getCurrentUTC, formatInTimezone } from '../utils/timezone';
 import { sendTelegramNotification, formatPostCompletedNotification } from '../services/telegramService';
 import { markNotificationAsSent, generateNotificationKey } from '../utils/notificationTracker';
 import { format } from 'date-fns';
+import { 
+  fetchCreatorData, 
+  syncUserSettings, 
+  syncCreator, 
+  syncPlatformAccount, 
+  syncPostLog,
+  syncCaption 
+} from '../services/supabaseService';
 
 interface AppContextType {
   state: AppState;
@@ -113,12 +121,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [state.userSettings, state.accounts.length]);
 
   const updateUserSettings = (updates: Partial<UserSettings>) => {
-    setState((prev) => ({
-      ...prev,
-      userSettings: prev.userSettings
+    setState((prev) => {
+      const updated = prev.userSettings
         ? { ...prev.userSettings, ...updates }
-        : null,
-    }));
+        : null;
+      
+      // Sync to Supabase
+      if (updated && state.authState.isAuthenticated) {
+        syncUserSettings(updated).catch(err => 
+          console.error('Failed to sync user settings:', err)
+        );
+      }
+      
+      return {
+        ...prev,
+        userSettings: updated,
+      };
+    });
   };
 
   const completeOnboarding = (timezone: string, notificationsEnabled: boolean) => {
@@ -151,16 +170,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
       creators: [...prev.creators, creator],
     }));
     
+    // Sync to Supabase
+    if (state.authState.isAuthenticated) {
+      syncCreator(creator).catch(err => 
+        console.error('Failed to sync creator:', err)
+      );
+    }
+    
     return creator;
   };
 
   const updateCreator = (id: string, updates: Partial<Creator>) => {
-    setState((prev) => ({
-      ...prev,
-      creators: prev.creators.map((c) =>
+    setState((prev) => {
+      const updatedCreators = prev.creators.map((c) =>
         c.id === id ? { ...c, ...updates } : c
-      ),
-    }));
+      );
+      
+      // Sync to Supabase
+      if (state.authState.isAuthenticated) {
+        const updatedCreator = updatedCreators.find(c => c.id === id);
+        if (updatedCreator) {
+          syncCreator(updatedCreator).catch(err => 
+            console.error('Failed to sync creator update:', err)
+          );
+        }
+      }
+      
+      return {
+        ...prev,
+        creators: updatedCreators,
+      };
+    });
   };
 
   const deleteCreator = (id: string) => {
@@ -193,6 +233,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       accounts: [...prev.accounts, account],
     }));
     
+    // Sync to Supabase
+    if (state.authState.isAuthenticated) {
+      syncPlatformAccount(account).catch(err => 
+        console.error('Failed to sync account:', err)
+      );
+    }
+    
     // Refresh daily plan when new account is added
     setTimeout(() => refreshDailyPlan(), 100);
     
@@ -200,12 +247,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const updateAccount = (id: string, updates: Partial<PlatformAccount>) => {
-    setState((prev) => ({
-      ...prev,
-      accounts: prev.accounts.map((a) =>
+    setState((prev) => {
+      const updatedAccounts = prev.accounts.map((a) =>
         a.id === id ? { ...a, ...updates } : a
-      ),
-    }));
+      );
+      
+      // Sync to Supabase
+      if (state.authState.isAuthenticated) {
+        const updatedAccount = updatedAccounts.find(a => a.id === id);
+        if (updatedAccount) {
+          syncPlatformAccount(updatedAccount).catch(err => 
+            console.error('Failed to sync account update:', err)
+          );
+          
+          // Sync captions if they were updated
+          if (updates.captions && updatedAccount.captions) {
+            updatedAccount.captions.forEach(caption => {
+              syncCaption(caption, updatedAccount.id).catch(err =>
+                console.error('Failed to sync caption:', err)
+              );
+            });
+          }
+        }
+      }
+      
+      return {
+        ...prev,
+        accounts: updatedAccounts,
+      };
+    });
   };
 
   const deleteAccount = (id: string) => {
@@ -421,6 +491,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
         });
       }
     }
+
+    // Sync post log to Supabase
+    if (state.authState.isAuthenticated) {
+      // Find the newly created post log from the updated state
+      const newPostLog = state.postLogs[state.postLogs.length - 1];
+      if (newPostLog) {
+        syncPostLog(newPostLog).catch(err => 
+          console.error('Failed to sync post log:', err)
+        );
+      }
+
+      // If captions were marked as used, sync the updated account
+      const updatedAccount = state.accounts.find(a => a.id === (accountId || finalAccount?.id));
+      if (updatedAccount) {
+        syncPlatformAccount(updatedAccount).catch(err =>
+          console.error('Failed to sync account after caption update:', err)
+        );
+      }
+    }
   };
 
   const logUnscheduledPost = (
@@ -561,11 +650,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const setAuthState = (authState: AuthState) => {
+  const setAuthState = async (authState: AuthState) => {
     setState((prev) => ({
       ...prev,
       authState,
     }));
+
+    // Load data from Supabase when user logs in
+    if (authState.isAuthenticated && authState.currentCreatorId) {
+      console.log('🔄 Loading data from Supabase for creator:', authState.currentCreatorId);
+      
+      const { creator, accounts, postLogs, userSettings, error } = await fetchCreatorData(
+        authState.currentCreatorId
+      );
+
+      if (error) {
+        console.error('Failed to load data from Supabase:', error);
+        return;
+      }
+
+      // Update state with Supabase data
+      setState((prev) => ({
+        ...prev,
+        creators: creator ? [creator] : prev.creators,
+        accounts: accounts,
+        postLogs: postLogs,
+        userSettings: userSettings || prev.userSettings,
+        lastSync: getCurrentUTC(),
+      }));
+
+      console.log('✅ Data loaded from Supabase:', {
+        accounts: accounts.length,
+        postLogs: postLogs.length,
+      });
+    }
   };
 
   return (
