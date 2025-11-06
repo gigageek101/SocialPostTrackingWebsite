@@ -98,7 +98,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [currentScreen, setCurrentScreen] = useState<Screen>(() => {
     return state.userSettings ? 'schedule-overview' : 'onboarding';
   });
-  const [isSyncing, setIsSyncing] = useState(false);
+  const isSyncing = false; // Auto-sync disabled to prevent data loss
 
   // Save to storage whenever state changes
   useEffect(() => {
@@ -106,80 +106,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [state]);
 
   // Auto-sync: Poll for changes every 5 seconds when logged in
-  useEffect(() => {
-    if (!state.authState?.isAuthenticated || !state.authState?.currentCreatorId) {
-      return;
-    }
+  // DISABLED: Auto-sync polling was causing data loss when editing captions
+  // Immediate sync operations handle real-time updates
+  // Manual "Sync from Cloud" button available in Settings for pulling updates
 
-    const pollInterval = setInterval(async () => {
-      setIsSyncing(true);
-      
-      const { creator, accounts, postLogs, userSettings, error } = await fetchCreatorData(
-        state.authState.currentCreatorId!
-      );
-
-      if (error) {
-        console.error('Auto-sync error:', error);
-        setIsSyncing(false);
-        return;
-      }
-
-      // Check if data has changed
-      const accountsChanged = accounts.length !== state.accounts.length;
-      const postsChanged = postLogs.length !== state.postLogs.length;
-
-      if (accountsChanged || postsChanged) {
-        console.log('✅ Auto-sync: Changes detected! Updating...');
-        setState((prev) => ({
-          ...prev,
-          creators: creator ? [creator] : prev.creators,
-          accounts: accounts || [],
-          postLogs: postLogs || [],
-          userSettings: userSettings || prev.userSettings,
-          lastSync: getCurrentUTC(),
-        }));
-      }
-      
-      setIsSyncing(false);
-    }, 5000); // Every 5 seconds
-
-    return () => clearInterval(pollInterval);
-  }, [state.authState?.isAuthenticated, state.authState?.currentCreatorId]);
-
-  // Auto-sync: Reload when app becomes visible (user switches back to tab/app)
-  useEffect(() => {
-    if (!state.authState?.isAuthenticated || !state.authState?.currentCreatorId) {
-      return;
-    }
-
-    const handleVisibilityChange = async () => {
-      if (!document.hidden) {
-        console.log('🔄 App focused: Syncing data...');
-        setIsSyncing(true);
-        
-        const { creator, accounts, postLogs, userSettings, error } = await fetchCreatorData(
-          state.authState.currentCreatorId!
-        );
-
-        if (!error) {
-          setState((prev) => ({
-            ...prev,
-            creators: creator ? [creator] : prev.creators,
-            accounts: accounts || [],
-            postLogs: postLogs || [],
-            userSettings: userSettings || prev.userSettings,
-            lastSync: getCurrentUTC(),
-          }));
-          console.log('✅ Data synced on focus');
-        }
-        
-        setIsSyncing(false);
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [state.authState?.isAuthenticated, state.authState?.currentCreatorId]);
+  // DISABLED: Sync on app focus was also causing data loss
+  // Use manual "Sync from Cloud" button in Settings to pull updates from other devices
 
   // Check and refresh daily plan on mount and daily
   useEffect(() => {
@@ -373,8 +305,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
           
           // Sync captions if they were updated
           if (updates.captions && updatedAccount.captions) {
-            updatedAccount.captions.forEach(caption => {
-              syncCaption(caption, updatedAccount.id);
+            console.log(`⬆️ Syncing ${updatedAccount.captions.length} caption(s) to Supabase...`);
+            updatedAccount.captions.forEach(async (caption) => {
+              const result = await syncCaption(caption, updatedAccount.id);
+              if (result.error) {
+                console.error('❌ Failed to sync caption:', result.error);
+              } else {
+                console.log('✅ Caption synced to cloud');
+              }
             });
           }
         }
