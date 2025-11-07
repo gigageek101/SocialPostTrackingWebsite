@@ -99,6 +99,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [currentScreen, setCurrentScreen] = useState<Screen>(() => {
     return state.userSettings ? 'schedule-overview' : 'onboarding';
   });
+  const [pauseAutoSync, setPauseAutoSync] = useState(false);
   const isSyncing = false; // Auto-sync disabled to prevent data loss
 
   // Save to storage whenever state changes
@@ -108,7 +109,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Smart auto-sync: Poll for changes and MERGE intelligently (never replace/delete)
   useEffect(() => {
-    if (!state.authState?.isAuthenticated || !state.authState?.currentCreatorId) {
+    if (!state.authState?.isAuthenticated || !state.authState?.currentCreatorId || pauseAutoSync) {
       return;
     }
 
@@ -166,7 +167,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     smartSync();
 
     return () => clearInterval(pollInterval);
-  }, [state.authState?.isAuthenticated, state.authState?.currentCreatorId]);
+  }, [state.authState?.isAuthenticated, state.authState?.currentCreatorId, pauseAutoSync]);
 
   // Check and refresh daily plan on mount and daily
   useEffect(() => {
@@ -643,8 +644,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const skipPost = (accountId: string, platform: Platform, onComplete?: () => void) => {
     const now = getCurrentUTC();
     
+    // PAUSE auto-sync to prevent conflicts
+    console.log('⏸️ Pausing auto-sync for skip operation');
+    setPauseAutoSync(true);
+    
     const account = state.accounts.find((a) => a.id === accountId);
-    if (!account) return;
+    if (!account) {
+      setPauseAutoSync(false);
+      return;
+    }
     
     const creator = state.creators.find((c) => c.id === account.creatorId);
     
@@ -681,13 +689,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     
     console.log('⏭️ Post skipped (no cooldown applied)');
     
-    // Call onComplete callback after state update
-    if (onComplete) {
-      // Use setTimeout to ensure state has propagated
-      setTimeout(onComplete, 50);
-    }
-    
-    // Sync to Supabase
+    // Sync to Supabase FIRST, then call onComplete
     if (state.authState.isAuthenticated) {
       setTimeout(async () => {
         console.log('⬆️ Syncing skipped post to Supabase');
@@ -697,7 +699,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
         } else {
           console.log('✅ Skipped post synced to cloud');
         }
-      }, 100);
+        
+        // RESUME auto-sync after sync completes
+        setTimeout(() => {
+          console.log('▶️ Resuming auto-sync');
+          setPauseAutoSync(false);
+        }, 500);
+        
+        // Call onComplete callback after sync
+        if (onComplete) {
+          setTimeout(onComplete, 100);
+        }
+      }, 50);
+    } else {
+      // No auth, just call onComplete and resume
+      if (onComplete) {
+        setTimeout(onComplete, 50);
+      }
+      setTimeout(() => {
+        setPauseAutoSync(false);
+      }, 500);
     }
   };
 
