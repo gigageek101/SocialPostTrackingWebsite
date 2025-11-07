@@ -167,7 +167,7 @@ export function ScheduleOverviewScreen() {
   });
 
   // Get all recommended posts using dynamic scheduler
-  // Include refreshCounter to force recalculation
+  // Dependencies: accounts, creators, userSettings, todayPosts (includes skipped posts)
   const recommendations = getAllRecommendedPosts(
     state.accounts,
     state.creators,
@@ -176,6 +176,7 @@ export function ScheduleOverviewScreen() {
   );
 
   // Get the next recommendation (earliest one)
+  // Force recalculation when postLogs change (including after skip)
   const nextRecommendation = recommendations.length > 0 ? recommendations[0] : null;
   
   // Track recommendation changes for debugging
@@ -190,8 +191,12 @@ export function ScheduleOverviewScreen() {
         });
         setLastRecommendationId(currentId);
       }
+    } else if (lastRecommendationId !== null) {
+      // No recommendations left, clear the last ID
+      console.log('🔄 No more recommendations');
+      setLastRecommendationId(null);
     }
-  }, [nextRecommendation, lastRecommendationId]);
+  }, [nextRecommendation?.accountId, nextRecommendation?.shift, nextRecommendation?.postNumber, state.postLogs.length]);
 
   const handlePostNow = (recommendation: RecommendedPost) => {
     setSelectedRecommendation(recommendation);
@@ -537,7 +542,21 @@ export function ScheduleOverviewScreen() {
                   <Button
                     onClick={() => {
                       skipPost(account.id, nextRecommendation.platform);
-                      console.log('⏭️ Post skipped, moving to next recommendation');
+                      
+                      // Force immediate refresh of recommendations (same as post)
+                      setTimeout(() => {
+                        setCurrentTime(new Date());
+                      }, 100);
+                      
+                      setTimeout(() => {
+                        setCurrentTime(new Date());
+                      }, 250);
+                      
+                      setTimeout(() => {
+                        setCurrentTime(new Date());
+                      }, 500);
+                      
+                      console.log('⏭️ Post skipped, forced refresh triggered');
                     }}
                     variant="ghost"
                     size="lg"
