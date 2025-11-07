@@ -170,16 +170,48 @@ export function getAllRecommendedPosts(
     const creator = creators.find(c => c.id === account.creatorId);
     if (!creator) continue;
     
-    // Get next post for morning shift
-    const morningRec = getNextRecommendedPost(account, creator, userSettings, 'morning', todayPosts);
-    if (morningRec) {
+    // Get ALL remaining posts for morning shift
+    let morningRec = getNextRecommendedPost(account, creator, userSettings, 'morning', todayPosts);
+    while (morningRec) {
       recommendations.push(morningRec);
+      
+      // Simulate the post being made to get the next one
+      const simulatedPosts = [...todayPosts, {
+        id: `sim-${morningRec.postNumber}`,
+        accountId: account.id,
+        platform: account.platform,
+        timestampUTC: morningRec.recommendedTimeUTC,
+        timestampCreatorTZ: '',
+        timestampUserTZ: '',
+        checklistState: { platform: account.platform, items: [], modified: false },
+        notes: 'simulated',
+        skipped: false,
+        createdAt: morningRec.recommendedTimeUTC,
+      }];
+      
+      morningRec = getNextRecommendedPost(account, creator, userSettings, 'morning', simulatedPosts);
     }
     
-    // Get next post for evening shift
-    const eveningRec = getNextRecommendedPost(account, creator, userSettings, 'evening', todayPosts);
-    if (eveningRec) {
+    // Get ALL remaining posts for evening shift
+    let eveningRec = getNextRecommendedPost(account, creator, userSettings, 'evening', todayPosts);
+    while (eveningRec) {
       recommendations.push(eveningRec);
+      
+      // Simulate the post being made to get the next one
+      const simulatedPosts = [...todayPosts, {
+        id: `sim-${eveningRec.postNumber}`,
+        accountId: account.id,
+        platform: account.platform,
+        timestampUTC: eveningRec.recommendedTimeUTC,
+        timestampCreatorTZ: '',
+        timestampUserTZ: '',
+        checklistState: { platform: account.platform, items: [], modified: false },
+        notes: 'simulated',
+        skipped: false,
+        createdAt: eveningRec.recommendedTimeUTC,
+      }];
+      
+      eveningRec = getNextRecommendedPost(account, creator, userSettings, 'evening', simulatedPosts);
     }
   }
   
