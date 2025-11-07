@@ -56,8 +56,8 @@ interface AppContextType {
   deleteAccount: (id: string) => void;
   
   // Posts
-  logPost: (slotId: string | undefined, checklistState: ChecklistState, notes: string, accountId?: string, platform?: Platform) => void;
-  skipPost: (accountId: string, platform: Platform, onComplete?: () => void) => void;
+  logPost: (slotId: string | undefined, checklistState: ChecklistState, notes: string, accountId?: string, platform?: Platform, postNumber?: number) => void;
+  skipPost: (accountId: string, platform: Platform, postNumber?: number, onComplete?: () => void) => void;
   logUnscheduledPost: (accountId: string, platform: string, checklistState: ChecklistState, notes: string) => void;
   
   // Daily plans
@@ -415,7 +415,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     checklistState: ChecklistState, 
     notes: string,
     accountId?: string,
-    platform?: Platform
+    platform?: Platform,
+    postNumber?: number
   ) => {
     const now = getCurrentUTC();
     
@@ -461,6 +462,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           slotId,
           accountId: targetAccountId,
           platform: targetPlatform,
+          postNumber,
           timestampUTC: now,
           timestampCreatorTZ: formatInTimezone(
             now,
@@ -527,6 +529,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           slotId: undefined,
           accountId,
           platform,
+          postNumber,
           timestampUTC: now,
           timestampCreatorTZ: formatInTimezone(
             now,
@@ -644,7 +647,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const skipPost = (accountId: string, platform: Platform, onComplete?: () => void) => {
+  const skipPost = (accountId: string, platform: Platform, postNumber?: number, onComplete?: () => void) => {
     const now = getCurrentUTC();
     
     // PAUSE auto-sync to prevent conflicts
@@ -664,6 +667,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       slotId: undefined,
       accountId,
       platform,
+      postNumber,
       timestampUTC: now,
       timestampCreatorTZ: formatInTimezone(
         now,

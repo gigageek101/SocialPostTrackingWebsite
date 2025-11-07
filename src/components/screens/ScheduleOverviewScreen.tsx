@@ -97,7 +97,14 @@ export function ScheduleOverviewScreen() {
       if (account) {
         setShowChecklist(false);
         setSelectedRecommendation(null);
-        logPost(undefined, checklistState, notes, account.id, account.platform);
+        logPost(
+          undefined, 
+          checklistState, 
+          notes, 
+          account.id, 
+          account.platform,
+          selectedRecommendation.postNumber
+        );
         
         // Force refresh
         setTimeout(() => setCurrentTime(new Date()), 100);
@@ -263,7 +270,7 @@ export function ScheduleOverviewScreen() {
                   size="sm"
                   variant="ghost"
                   onClick={() => {
-                    skipPost(account.id, rec.platform, () => {
+                    skipPost(account.id, rec.platform, rec.postNumber, () => {
                       setCurrentTime(new Date());
                     });
                   }}

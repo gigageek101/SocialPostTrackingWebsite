@@ -298,10 +298,10 @@ export function getAllPostsForShift(
     
     // Generate recommendations for ALL posts (including already completed/skipped)
     for (let postNum = 1; postNum <= maxPosts; postNum++) {
-      // Check if this post was completed
-      const existingPost = shiftCompletedPosts.find((_, idx) => idx + 1 === postNum);
-      // Check if this post was skipped
-      const wasSkipped = shiftSkippedPosts.some((_, idx) => idx + 1 === postNum);
+      // Check if this post was completed (match by postNumber, not index!)
+      const existingPost = shiftCompletedPosts.find(p => p.postNumber === postNum);
+      // Check if this post was skipped (match by postNumber, not index!)
+      const wasSkipped = shiftSkippedPosts.some(p => p.postNumber === postNum);
       
       if (existingPost) {
         // This post was already made - mark as completed
@@ -324,26 +324,28 @@ export function getAllPostsForShift(
           skipped: false,
         });
       } else if (wasSkipped) {
-        // This post was skipped
-        const skippedPost = shiftSkippedPosts.find((_, idx) => idx + 1 === postNum);
-        recommendations.push({
-          accountId: account.id,
-          platform: account.platform,
-          recommendedTimeUTC: skippedPost!.timestampUTC,
-          recommendedTimeCreatorTZ: skippedPost!.timestampCreatorTZ,
-          recommendedTimeUserTZ: skippedPost!.timestampUserTZ,
-          shift,
-          postNumber: postNum,
-          isReady: true,
-          isTooEarly: false,
-          isPerfectTime: false,
-          isTooLate: false,
-          basedOnPreviousPost: postNum > 1,
-          minutesUntilRecommended: 0,
-          isDuringCooldown: false,
-          alreadyCompleted: false,
-          skipped: true,
-        });
+        // This post was skipped (match by postNumber!)
+        const skippedPost = shiftSkippedPosts.find(p => p.postNumber === postNum);
+        if (skippedPost) {
+          recommendations.push({
+            accountId: account.id,
+            platform: account.platform,
+            recommendedTimeUTC: skippedPost.timestampUTC,
+            recommendedTimeCreatorTZ: skippedPost.timestampCreatorTZ,
+            recommendedTimeUserTZ: skippedPost.timestampUserTZ,
+            shift,
+            postNumber: postNum,
+            isReady: true,
+            isTooEarly: false,
+            isPerfectTime: false,
+            isTooLate: false,
+            basedOnPreviousPost: postNum > 1,
+            minutesUntilRecommended: 0,
+            isDuringCooldown: false,
+            alreadyCompleted: false,
+            skipped: true,
+          });
+        }
       } else {
         // This post is pending - calculate recommendation
         const rec = calculateRecommendationForPost(

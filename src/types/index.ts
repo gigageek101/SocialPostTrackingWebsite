@@ -90,6 +90,7 @@ export interface PostLogEntry {
   slotId?: string; // Optional for unscheduled posts
   accountId: string;
   platform: Platform;
+  postNumber?: number; // Which post number this is (1, 2, 3, etc.) - for dynamic scheduling
   timestampUTC: string;
   timestampCreatorTZ: string;
   timestampUserTZ: string;
