@@ -56,7 +56,7 @@ interface AppContextType {
   deleteAccount: (id: string) => void;
   
   // Posts
-  logPost: (slotId: string | undefined, checklistState: ChecklistState, notes: string, accountId?: string, platform?: Platform, postNumber?: number) => void;
+  logPost: (slotId: string | undefined, checklistState: ChecklistState, notes: string, accountId?: string, platform?: Platform, postNumber?: number, customTimestamp?: Date, postLink?: string) => void;
   skipPost: (accountId: string, platform: Platform, postNumber?: number, onComplete?: () => void) => void;
   logUnscheduledPost: (accountId: string, platform: string, checklistState: ChecklistState, notes: string) => void;
   
@@ -416,9 +416,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     notes: string,
     accountId?: string,
     platform?: Platform,
-    postNumber?: number
+    postNumber?: number,
+    customTimestamp?: Date,
+    postLink?: string
   ) => {
-    const now = getCurrentUTC();
+    const now = customTimestamp ? customTimestamp.toISOString() : getCurrentUTC();
     
     setState((prev) => {
       let targetAccountId: string;
@@ -463,6 +465,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           accountId: targetAccountId,
           platform: targetPlatform,
           postNumber,
+          postLink,
           timestampUTC: now,
           timestampCreatorTZ: formatInTimezone(
             now,
@@ -530,6 +533,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           accountId,
           platform,
           postNumber,
+          postLink,
           timestampUTC: now,
           timestampCreatorTZ: formatInTimezone(
             now,

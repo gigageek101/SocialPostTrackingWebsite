@@ -91,6 +91,7 @@ export interface PostLogEntry {
   accountId: string;
   platform: Platform;
   postNumber?: number; // Which post number this is (1, 2, 3, etc.) - for dynamic scheduling
+  postLink?: string; // Link to the actual post
   timestampUTC: string;
   timestampCreatorTZ: string;
   timestampUserTZ: string;

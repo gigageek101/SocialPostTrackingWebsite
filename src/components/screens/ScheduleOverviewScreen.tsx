@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { PostChecklistModal } from '../PostChecklistModal';
+import { BackdatePostModal } from '../BackdatePostModal';
 import { PlatformIcon } from '../ui/PlatformIcon';
 import { CheckCircle, ExternalLink, RefreshCw, SkipForward, Clock, Timer } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -15,6 +16,7 @@ export function ScheduleOverviewScreen() {
   const { state, logPost, skipPost, setCurrentScreen, manualSync } = useApp();
   const [selectedRecommendation, setSelectedRecommendation] = useState<RecommendedPost | null>(null);
   const [showChecklist, setShowChecklist] = useState(false);
+  const [showBackdateModal, setShowBackdateModal] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [syncing, setSyncing] = useState(false);
 
@@ -88,6 +90,44 @@ export function ScheduleOverviewScreen() {
   const handlePostNow = (recommendation: RecommendedPost) => {
     setSelectedRecommendation(recommendation);
     setShowChecklist(true);
+  };
+
+  const handlePostEarlier = (recommendation: RecommendedPost) => {
+    setSelectedRecommendation(recommendation);
+    setShowBackdateModal(true);
+  };
+
+  const handleBackdateSubmit = (customTime: Date, postLink: string) => {
+    if (selectedRecommendation) {
+      const account = state.accounts.find(a => a.id === selectedRecommendation.accountId);
+      
+      if (account) {
+        setShowBackdateModal(false);
+        
+        // Create a simple checklist state for backdated posts
+        const checklistState: ChecklistState = {
+          platform: account.platform,
+          items: [],
+          modified: false,
+        };
+        
+        logPost(
+          undefined,
+          checklistState,
+          `Posted earlier at ${format(customTime, 'MMM d, h:mm a')}`,
+          account.id,
+          account.platform,
+          selectedRecommendation.postNumber,
+          customTime,
+          postLink
+        );
+        
+        setSelectedRecommendation(null);
+        
+        // Force refresh
+        setTimeout(() => setCurrentTime(new Date()), 100);
+      }
+    }
   };
 
   const handleChecklistSubmit = (checklistState: ChecklistState, notes: string) => {
@@ -270,6 +310,28 @@ export function ScheduleOverviewScreen() {
                       <p className="text-sm text-green-700 font-semibold mt-1">
                         {timeSincePost}
                       </p>
+                      {/* Post Link */}
+                      {(() => {
+                        const postLog = state.postLogs.find(
+                          p => p.accountId === rec.accountId && 
+                               p.postNumber === rec.postNumber && 
+                               !p.skipped
+                        );
+                        if (postLog?.postLink) {
+                          return (
+                            <a
+                              href={postLog.postLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium mt-2"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              View Post
+                            </a>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -379,6 +441,14 @@ export function ScheduleOverviewScreen() {
                   className={`whitespace-nowrap ${liveCooldown ? 'bg-orange-600 hover:bg-orange-700' : ''}`}
                 >
                   {liveCooldown ? '⚠️ Post Anyway' : '✓ I Just Posted'}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => handlePostEarlier(rec)}
+                  className="whitespace-nowrap text-xs"
+                >
+                  🕐 Posted Earlier
                 </Button>
                 <Button
                   size="sm"
@@ -556,6 +626,21 @@ export function ScheduleOverviewScreen() {
           postLabel={getOrdinal(selectedRecommendation.postNumber)}
           shift={selectedRecommendation.shift}
           todayPosts={todayPosts}
+        />
+      )}
+
+      {/* Backdate Post Modal */}
+      {selectedRecommendation && (
+        <BackdatePostModal
+          isOpen={showBackdateModal}
+          onClose={() => {
+            setShowBackdateModal(false);
+            setSelectedRecommendation(null);
+          }}
+          onSubmit={handleBackdateSubmit}
+          platformName={PLATFORM_NAMES[selectedRecommendation.platform]}
+          accountName={state.accounts.find(a => a.id === selectedRecommendation.accountId)?.handle || ''}
+          postNumber={selectedRecommendation.postNumber}
         />
       )}
     </div>
