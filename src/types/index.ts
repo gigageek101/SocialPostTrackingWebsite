@@ -156,7 +156,8 @@ export type Screen =
   | 'calendar'
   | 'creators'
   | 'creator-settings'
-  | 'settings';
+  | 'settings'
+  | 'statistics';
 
 // Notification
 export interface AppNotification {

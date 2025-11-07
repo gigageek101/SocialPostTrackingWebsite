@@ -1,4 +1,4 @@
-import { Calendar, Home, Users, Settings, List, FileText, BookOpen, UserCog, Sun, Moon } from 'lucide-react';
+import { Calendar, Home, Users, Settings, List, FileText, BookOpen, UserCog, Sun, Moon, TrendingUp } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { Screen } from '../types';
@@ -13,6 +13,7 @@ export function Navigation() {
     { screen: 'content', icon: <FileText className="w-6 h-6" />, label: 'Content' },
     { screen: 'workflow', icon: <BookOpen className="w-6 h-6" />, label: 'Workflow' },
     { screen: 'calendar', icon: <Calendar className="w-6 h-6" />, label: 'Calendar' },
+    { screen: 'statistics', icon: <TrendingUp className="w-6 h-6" />, label: 'Stats' },
     { screen: 'creators', icon: <Users className="w-6 h-6" />, label: 'Creators' },
     { screen: 'creator-settings', icon: <UserCog className="w-6 h-6" />, label: 'Creator' },
     { screen: 'settings', icon: <Settings className="w-6 h-6" />, label: 'Settings' },
