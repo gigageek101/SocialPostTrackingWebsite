@@ -146,6 +146,9 @@ export function ScheduleOverviewScreen() {
     // Calculate live cooldown for pending posts
     const [liveCooldown, setLiveCooldown] = React.useState<number | null>(null);
     
+    // Calculate time since post for completed posts
+    const [timeSincePost, setTimeSincePost] = React.useState<string>('');
+    
     React.useEffect(() => {
       if (!isPending) return;
       
@@ -190,6 +193,38 @@ export function ScheduleOverviewScreen() {
       return () => clearInterval(interval);
     }, [isPending, rec.accountId, rec.platform, state.postLogs.length, currentTime]);
 
+    // Update "time since post" for completed posts
+    React.useEffect(() => {
+      if (!isCompleted) return;
+      
+      const updateTimeSince = () => {
+        const postTime = new Date(rec.recommendedTimeUTC).getTime();
+        const now = Date.now();
+        const elapsedMinutes = Math.floor((now - postTime) / 1000 / 60);
+        
+        if (elapsedMinutes < 1) {
+          setTimeSincePost('Just now');
+        } else if (elapsedMinutes === 1) {
+          setTimeSincePost('1 minute ago');
+        } else if (elapsedMinutes < 60) {
+          setTimeSincePost(`${elapsedMinutes} minutes ago`);
+        } else {
+          const hours = Math.floor(elapsedMinutes / 60);
+          const mins = elapsedMinutes % 60;
+          if (hours === 1) {
+            setTimeSincePost(mins > 0 ? `1 hour ${mins} min ago` : '1 hour ago');
+          } else {
+            setTimeSincePost(mins > 0 ? `${hours} hours ${mins} min ago` : `${hours} hours ago`);
+          }
+        }
+      };
+      
+      updateTimeSince();
+      const interval = setInterval(updateTimeSince, 1000); // Update every second
+      
+      return () => clearInterval(interval);
+    }, [isCompleted, rec.recommendedTimeUTC]);
+
     return (
       <Card 
         key={`${rec.accountId}-${rec.shift}-${rec.postNumber}`}
@@ -222,6 +257,24 @@ export function ScheduleOverviewScreen() {
               
               <p className="text-sm text-gray-600 mb-2">{creator.name} • @{account.handle}</p>
               
+              {/* Completed Post Timestamp */}
+              {isCompleted && (
+                <div className="mb-3 p-3 bg-gradient-to-r from-green-100 to-emerald-100 border-2 border-green-400 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="w-6 h-6 text-green-600" />
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-green-800 uppercase tracking-wide">✅ Posted</p>
+                      <p className="text-xl font-black text-red-600 tabular-nums">
+                        {rec.recommendedTimeUserTZ}
+                      </p>
+                      <p className="text-sm text-green-700 font-semibold mt-1">
+                        {timeSincePost}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               {/* Live Cooldown Display */}
               {isPending && liveCooldown && liveCooldown > 0 && (
                 <div className="mb-3 p-3 bg-gradient-to-r from-orange-100 to-red-100 border-2 border-orange-400 rounded-lg animate-pulse">
@@ -245,10 +298,12 @@ export function ScheduleOverviewScreen() {
                   <span className="text-gray-600">US Time:</span>
                   <span className="font-medium text-gray-900">{rec.recommendedTimeCreatorTZ}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-600">Your Time:</span>
-                  <span className="font-medium text-gray-900">{rec.recommendedTimeUserTZ}</span>
-                </div>
+                {!isCompleted && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600">Your Time:</span>
+                    <span className="font-medium text-gray-900">{rec.recommendedTimeUserTZ}</span>
+                  </div>
+                )}
                 
                 {/* Timing indicator (only show if NOT in cooldown) */}
                 {isPending && !liveCooldown && (
