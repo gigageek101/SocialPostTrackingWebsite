@@ -3,7 +3,7 @@ import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { PostChecklistModal } from '../PostChecklistModal';
 import { PlatformIcon } from '../ui/PlatformIcon';
-import { CheckCircle, ExternalLink, Copy } from 'lucide-react';
+import { CheckCircle, ExternalLink, Copy, RefreshCw } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ChecklistState } from '../../types';
 import { format } from 'date-fns';
@@ -14,12 +14,13 @@ import { sendTelegramNotification, formatPostReadyNotification } from '../../ser
 import { hasNotificationBeenSent, markNotificationAsSent, generateNotificationKey, clearOldNotifications } from '../../utils/notificationTracker';
 
 export function ScheduleOverviewScreen() {
-  const { state, logPost, skipPost, setCurrentScreen } = useApp();
+  const { state, logPost, skipPost, setCurrentScreen, manualSync } = useApp();
   const [selectedRecommendation, setSelectedRecommendation] = useState<RecommendedPost | null>(null);
   const [showChecklist, setShowChecklist] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [lastRecommendationId, setLastRecommendationId] = useState<string | null>(null);
   const [copiedText, setCopiedText] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     // Update current time every second (also triggers recommendations refresh)
@@ -252,6 +253,18 @@ export function ScheduleOverviewScreen() {
     return userHour < 14 ? 'morning' : 'evening'; // Before 2 PM = morning, after = evening
   };
 
+  const handleManualSync = async () => {
+    setSyncing(true);
+    try {
+      await manualSync();
+      setCurrentTime(new Date()); // Force refresh
+    } catch (err: any) {
+      alert(`❌ Sync failed: ${err.message}`);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   // Copy to clipboard helper
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -313,6 +326,21 @@ export function ScheduleOverviewScreen() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-3 sm:p-4 pb-24 sm:pb-4">
       <div className="max-w-4xl mx-auto py-8">
+        {/* Sync Button */}
+        {state.authState?.isAuthenticated && (
+          <div className="mb-4 flex justify-end">
+            <Button
+              onClick={handleManualSync}
+              variant="secondary"
+              disabled={syncing}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Syncing...' : 'Sync from Cloud'}
+            </Button>
+          </div>
+        )}
+
         {/* Main Next Post Card */}
         {nextRecommendation ? (
           <Card className="shadow-2xl border-4 border-white mb-6">

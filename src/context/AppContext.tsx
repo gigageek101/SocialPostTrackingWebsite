@@ -27,7 +27,9 @@ import {
   syncPostLog, 
   syncCaption,
   deleteCreatorFromSupabase,
-  deleteAccountFromSupabase
+  deleteAccountFromSupabase,
+  deleteAllPostLogsForCreator,
+  resetAllCaptionsForCreator,
 } from '../services/supabaseService';
 
 interface AppContextType {
@@ -66,7 +68,8 @@ interface AppContextType {
   // Export/Import
   exportData: () => void;
   importData: (data: AppState) => void;
-  clearScheduleData: () => void;
+  clearScheduleData: () => Promise<void>;
+  manualSync: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -843,7 +846,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setState(data);
   };
 
-  const clearScheduleData = () => {
+  const clearScheduleData = async () => {
+    // Pause auto-sync during operation
+    setPauseAutoSync(true);
+    
+    console.log('🗑️ Clearing schedule data...');
+    
+    // Clear from Supabase first if authenticated
+    if (state.authState?.isAuthenticated && state.authState?.currentCreatorId) {
+      console.log('⬆️ Deleting all post logs from Supabase...');
+      const deleteResult = await deleteAllPostLogsForCreator(state.authState.currentCreatorId);
+      if (deleteResult.error) {
+        console.error('❌ Failed to delete post logs:', deleteResult.error);
+        alert(`⚠️ Failed to delete posts from cloud: ${deleteResult.error}`);
+        setPauseAutoSync(false);
+        return;
+      }
+      
+      console.log('⬆️ Resetting all captions in Supabase...');
+      const resetResult = await resetAllCaptionsForCreator(state.authState.currentCreatorId);
+      if (resetResult.error) {
+        console.error('❌ Failed to reset captions:', resetResult.error);
+        alert(`⚠️ Failed to reset captions: ${resetResult.error}`);
+        setPauseAutoSync(false);
+        return;
+      }
+      
+      console.log('✅ Schedule data deleted from cloud');
+    }
+    
+    // Now clear locally
     setState((prev) => {
       // Reset all captions to unused
       const resetAccounts = prev.accounts.map(account => ({
@@ -858,6 +890,48 @@ export function AppProvider({ children }: { children: ReactNode }) {
         dailyPlans: [], // Clear all daily plans
       };
     });
+    
+    console.log('✅ Schedule data cleared locally');
+    
+    // Resume auto-sync after a delay
+    setTimeout(() => {
+      setPauseAutoSync(false);
+    }, 1000);
+  };
+
+  const manualSync = async () => {
+    if (!state.authState?.isAuthenticated || !state.authState?.currentCreatorId) {
+      throw new Error('Not authenticated');
+    }
+
+    console.log('🔄 Manual sync requested...');
+    setPauseAutoSync(true);
+
+    try {
+      const { creator, accounts, postLogs, userSettings, error } = await fetchCreatorData(
+        state.authState.currentCreatorId
+      );
+
+      if (error) {
+        console.error('❌ Failed to sync from cloud:', error);
+        throw new Error(error);
+      }
+
+      setState((prev) => ({
+        ...prev,
+        creators: creator ? [creator] : prev.creators,
+        accounts: accounts,
+        postLogs: postLogs,
+        userSettings: userSettings || prev.userSettings,
+        lastSync: getCurrentUTC(),
+      }));
+
+      console.log('✅ Manual sync complete');
+    } finally {
+      setTimeout(() => {
+        setPauseAutoSync(false);
+      }, 1000);
+    }
   };
 
   const setAuthState = async (authState: AuthState) => {
@@ -985,6 +1059,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         exportData: handleExportData,
         importData: handleImportData,
         clearScheduleData,
+        manualSync,
       }}
     >
       {children}

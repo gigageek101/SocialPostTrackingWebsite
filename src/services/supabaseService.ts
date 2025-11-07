@@ -526,3 +526,85 @@ export async function deletePostLogFromSupabase(postLogId: string): Promise<{ er
   }
 }
 
+export async function deleteAllPostLogsForCreator(creatorId: string): Promise<{ error: string | null }> {
+  try {
+    if (!isSupabaseConfigured()) {
+      return { error: 'Supabase not configured' };
+    }
+
+    // First, get all accounts for this creator
+    const { data: accounts, error: accountError } = await supabase
+      .from('accounts')
+      .select('id')
+      .eq('creator_id', creatorId);
+
+    if (accountError) {
+      console.error('Supabase error fetching accounts:', accountError);
+      return { error: accountError.message };
+    }
+
+    if (!accounts || accounts.length === 0) {
+      return { error: null }; // No accounts, nothing to delete
+    }
+
+    const accountIds = accounts.map(a => a.id);
+
+    // Delete all post logs for these accounts
+    const { error } = await supabase
+      .from('post_logs')
+      .delete()
+      .in('account_id', accountIds);
+
+    if (error) {
+      console.error('Supabase delete error (all post_logs):', error);
+      return { error: error.message };
+    }
+
+    console.log('✅ All post logs deleted from Supabase for creator:', creatorId);
+    return { error: null };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}
+
+export async function resetAllCaptionsForCreator(creatorId: string): Promise<{ error: string | null }> {
+  try {
+    if (!isSupabaseConfigured()) {
+      return { error: 'Supabase not configured' };
+    }
+
+    // Get all accounts for this creator
+    const { data: accounts, error: accountError } = await supabase
+      .from('accounts')
+      .select('id')
+      .eq('creator_id', creatorId);
+
+    if (accountError) {
+      console.error('Supabase error fetching accounts:', accountError);
+      return { error: accountError.message };
+    }
+
+    if (!accounts || accounts.length === 0) {
+      return { error: null };
+    }
+
+    const accountIds = accounts.map(a => a.id);
+
+    // Reset all captions to unused
+    const { error } = await supabase
+      .from('captions')
+      .update({ used: false })
+      .in('account_id', accountIds);
+
+    if (error) {
+      console.error('Supabase error resetting captions:', error);
+      return { error: error.message };
+    }
+
+    console.log('✅ All captions reset to unused for creator:', creatorId);
+    return { error: null };
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}
+

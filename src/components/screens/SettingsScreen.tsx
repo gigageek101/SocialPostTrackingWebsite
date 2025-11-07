@@ -9,7 +9,7 @@ import { exportData, importData, clearStorage } from '../../utils/storage';
 import { requestNotificationPermission } from '../../utils/helpers';
 
 export function SettingsScreen() {
-  const { state, updateUserSettings, importData: handleImport, clearScheduleData, setAuthState, setCurrentScreen } = useApp();
+  const { state, updateUserSettings, importData: handleImport, clearScheduleData, setAuthState, setCurrentScreen, manualSync } = useApp();
   const [importing, setImporting] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
@@ -57,14 +57,18 @@ export function SettingsScreen() {
     input.click();
   };
 
-  const handleClearSchedule = () => {
+  const handleClearSchedule = async () => {
     if (
       confirm(
         '⚠️ Clear Schedule Data?\n\nThis will delete:\n• All posted logs\n• All daily plans\n• Reset all captions to unused\n\nThis will keep:\n✓ All creators\n✓ All accounts\n✓ User settings\n\nContinue?'
       )
     ) {
-      clearScheduleData();
-      alert('✅ Schedule data cleared! Your accounts are safe.');
+      try {
+        await clearScheduleData();
+        alert('✅ Schedule data cleared from cloud and locally! Your accounts are safe.');
+      } catch (err: any) {
+        alert(`❌ Error clearing schedule: ${err.message}`);
+      }
     }
   };
 
@@ -105,17 +109,14 @@ export function SettingsScreen() {
     setSyncing(true);
     console.log('🔄 Manual sync requested...');
 
-    // Re-authenticate to force data reload
-    await setAuthState({
-      isAuthenticated: true,
-      currentCreatorId: state.authState.currentCreatorId,
-      currentUsername: state.authState.currentUsername,
-    });
-
-    setTimeout(() => {
-      setSyncing(false);
+    try {
+      await manualSync();
       alert('✅ Data synced from cloud!');
-    }, 1000);
+    } catch (err: any) {
+      alert(`❌ Sync failed: ${err.message}`);
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const timezoneOptions = COMMON_TIMEZONES.map((tz) => ({
