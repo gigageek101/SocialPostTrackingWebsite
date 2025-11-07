@@ -140,6 +140,27 @@ export const CHECKLIST_TEMPLATES: PlatformChecklistTemplate[] = [
         recommendedCount: 20,
       },
       {
+        id: 'ig-engage-followers-post-likes',
+        label: 'Like 30 posts from followers',
+        type: 'counter',
+        count: 30,
+        recommendedCount: 30,
+      },
+      {
+        id: 'ig-engage-followers-story-views',
+        label: 'View 30 follower stories',
+        type: 'counter',
+        count: 30,
+        recommendedCount: 30,
+      },
+      {
+        id: 'ig-engage-followers-story-likes',
+        label: 'Like 10 follower stories',
+        type: 'counter',
+        count: 10,
+        recommendedCount: 10,
+      },
+      {
         id: 'ig-homefeed',
         label: 'Scroll homefeed for 3 minutes (like & save content)',
         type: 'toggle',
