@@ -351,8 +351,7 @@ export function getAllPostsForShift(
           userSettings,
           shift,
           postNum,
-          shiftCompletedPosts,
-          todayPosts
+          shiftCompletedPosts
         );
         if (rec) {
           recommendations.push({
@@ -446,8 +445,7 @@ function calculateRecommendationForPost(
   userSettings: UserSettings,
   shift: 'morning' | 'evening',
   postNumber: number,
-  shiftPosts: PostLogEntry[],
-  todayPosts: PostLogEntry[]
+  shiftPosts: PostLogEntry[]
 ): RecommendedPost | null {
   const platform = account.platform;
   
