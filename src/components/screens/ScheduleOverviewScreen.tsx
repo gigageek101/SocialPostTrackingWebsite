@@ -3,144 +3,33 @@ import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { PostChecklistModal } from '../PostChecklistModal';
 import { PlatformIcon } from '../ui/PlatformIcon';
-import { CheckCircle, ExternalLink, Copy, RefreshCw } from 'lucide-react';
+import { CheckCircle, ExternalLink, RefreshCw, SkipForward, Clock, Timer } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ChecklistState } from '../../types';
 import { format } from 'date-fns';
-import { PLATFORM_NAMES, COOLDOWN_MINUTES } from '../../constants/platforms';
-import { getAllRecommendedPosts, RecommendedPost } from '../../utils/dynamicScheduler';
-import { formatCountdown, getMinutesUntil } from '../../utils/timezone';
-import { sendTelegramNotification, formatPostReadyNotification } from '../../services/telegramService';
-import { hasNotificationBeenSent, markNotificationAsSent, generateNotificationKey, clearOldNotifications } from '../../utils/notificationTracker';
+import { PLATFORM_NAMES, PLATFORM_COLORS } from '../../constants/platforms';
+import { getAllPostsForShift, RecommendedPost } from '../../utils/dynamicScheduler';
+import { formatCountdown } from '../../utils/timezone';
 
 export function ScheduleOverviewScreen() {
   const { state, logPost, skipPost, setCurrentScreen, manualSync } = useApp();
   const [selectedRecommendation, setSelectedRecommendation] = useState<RecommendedPost | null>(null);
   const [showChecklist, setShowChecklist] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [lastRecommendationId, setLastRecommendationId] = useState<string | null>(null);
-  const [copiedText, setCopiedText] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
-    // Update current time every second (also triggers recommendations refresh)
+    // Update current time every second
     const interval = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
     return () => clearInterval(interval);
   }, []);
 
-  // Clear old notifications daily
+  // Force re-render when posts are logged
   useEffect(() => {
-    clearOldNotifications();
-    const dailyClear = setInterval(() => {
-      clearOldNotifications();
-    }, 24 * 60 * 60 * 1000); // Once per day
-    return () => clearInterval(dailyClear);
-  }, []);
-
-  // Check for posts that are ready and send Telegram notifications
-  useEffect(() => {
-    if (!state.accounts.length || !state.creators.length || !state.userSettings) return;
-
-    const today = format(new Date(), 'yyyy-MM-dd');
-    const todayPosts = state.postLogs.filter(log => {
-      const logDate = format(new Date(log.timestampUTC), 'yyyy-MM-dd');
-      return logDate === today;
-    });
-
-    const recommendations = getAllRecommendedPosts(
-      state.accounts,
-      state.creators,
-      state.userSettings,
-      todayPosts
-    );
-
-    // Check each recommendation to see if it's ready (within 5 minutes of recommended time or overdue)
-    recommendations.forEach(rec => {
-      const recTimeUTC = new Date(rec.recommendedTimeUTC);
-      const minutesUntil = Math.floor(
-        (recTimeUTC.getTime() - currentTime.getTime()) / 1000 / 60
-      );
-
-      // If post is ready (within 5 minutes or past due) and not in cooldown
-      if (!rec.isDuringCooldown && minutesUntil <= 5 && minutesUntil >= -30) {
-        const account = state.accounts.find(a => a.id === rec.accountId);
-        if (!account) return;
-
-        const creator = state.creators.find(c => c.id === account.creatorId);
-        if (!creator?.telegramBotToken || !creator?.telegramChatId) return;
-
-        // Generate notification key
-        const notificationKey = generateNotificationKey(
-          'post-ready',
-          rec.accountId,
-          rec.shift,
-          rec.postNumber,
-          today
-        );
-
-        // Only send if not already sent
-        if (!hasNotificationBeenSent(notificationKey)) {
-          console.log(`📨 Sending Telegram notification for ${account.platform} @${account.handle}`);
-          
-          sendTelegramNotification(
-            creator.telegramBotToken,
-            creator.telegramChatId,
-            {
-              text: formatPostReadyNotification(
-                account.platform,
-                account.handle,
-                rec.postNumber,
-                rec.shift,
-                rec.recommendedTimeCreatorTZ,
-                rec.recommendedTimeUserTZ
-              ),
-              parseMode: 'HTML',
-            }
-          ).then(result => {
-            if (result.success) {
-              markNotificationAsSent(notificationKey);
-              console.log(`✅ Telegram notification sent for ${account.platform} @${account.handle}`);
-            } else {
-              console.error(`❌ Failed to send Telegram notification: ${result.error}`);
-            }
-          }).catch(err => {
-            console.error('Failed to send Telegram notification:', err);
-          });
-        }
-      }
-    });
-  }, [currentTime, state.accounts, state.postLogs, state.creators, state.userSettings]);
-  
-  // Force re-render when posts are logged to immediately show next recommendation
-  useEffect(() => {
-    // SUPER AGGRESSIVE refresh
-    setCurrentTime(new Date()); // Immediate
-    
-    const timer1 = setTimeout(() => {
       setCurrentTime(new Date());
-    }, 50);
-    
-    const timer2 = setTimeout(() => {
-      setCurrentTime(new Date());
-    }, 150);
-    
-    const timer3 = setTimeout(() => {
-      setCurrentTime(new Date());
-    }, 300);
-    
-    const timer4 = setTimeout(() => {
-      setCurrentTime(new Date());
-    }, 500);
-    
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      clearTimeout(timer3);
-      clearTimeout(timer4);
-    };
-  }, [state.postLogs.length, state.accounts]); // Also watch accounts for caption changes
+  }, [state.postLogs.length, state.accounts]);
 
   if (!state.userSettings || state.creators.length === 0 || state.accounts.length === 0) {
     return (
@@ -167,37 +56,34 @@ export function ScheduleOverviewScreen() {
     return logDate === today;
   });
 
-  // Get all recommended posts using dynamic scheduler
-  // Dependencies: accounts, creators, userSettings, todayPosts (includes skipped posts)
-  const recommendations = getAllRecommendedPosts(
+  // Determine current shift based on USER's local time
+  const getUserShift = (): 'morning' | 'evening' => {
+    const now = new Date();
+    const userHour = now.getHours();
+    return userHour < 14 ? 'morning' : 'evening';
+  };
+
+  const currentShift = getUserShift();
+  
+  // Get all posts for current shift
+  const morningPosts = getAllPostsForShift(
     state.accounts,
     state.creators,
     state.userSettings,
+    'morning',
     todayPosts
   );
 
-  // Get the next recommendation (earliest one)
-  // Force recalculation when postLogs change (including after skip)
-  const nextRecommendation = recommendations.length > 0 ? recommendations[0] : null;
-  
-  // Track recommendation changes for debugging
-  useEffect(() => {
-    if (nextRecommendation) {
-      const currentId = `${nextRecommendation.accountId}-${nextRecommendation.shift}-${nextRecommendation.postNumber}`;
-      if (currentId !== lastRecommendationId) {
-        console.log('🔄 Recommendation changed:', {
-          from: lastRecommendationId,
-          to: currentId,
-          recommendation: nextRecommendation
-        });
-        setLastRecommendationId(currentId);
-      }
-    } else if (lastRecommendationId !== null) {
-      // No recommendations left, clear the last ID
-      console.log('🔄 No more recommendations');
-      setLastRecommendationId(null);
-    }
-  }, [nextRecommendation?.accountId, nextRecommendation?.shift, nextRecommendation?.postNumber, state.postLogs.length]);
+  const eveningPosts = getAllPostsForShift(
+    state.accounts,
+    state.creators,
+    state.userSettings,
+    'evening',
+    todayPosts
+  );
+
+  const currentShiftPosts = currentShift === 'morning' ? morningPosts : eveningPosts;
+  const otherShiftPosts = currentShift === 'morning' ? eveningPosts : morningPosts;
 
   const handlePostNow = (recommendation: RecommendedPost) => {
     setSelectedRecommendation(recommendation);
@@ -207,57 +93,23 @@ export function ScheduleOverviewScreen() {
   const handleChecklistSubmit = (checklistState: ChecklistState, notes: string) => {
     if (selectedRecommendation) {
       const account = state.accounts.find(a => a.id === selectedRecommendation.accountId);
-      const creator = state.creators.find(c => c.id === account?.creatorId);
       
-      if (account && creator) {
-        console.log('📝 Logging post for:', {
-          account: account.handle,
-          platform: account.platform,
-          shift: selectedRecommendation.shift,
-          postNumber: selectedRecommendation.postNumber
-        });
-        
-        // Close modal first
+      if (account) {
         setShowChecklist(false);
         setSelectedRecommendation(null);
-        
-        // Log the post without a slot ID (dynamic posting)
         logPost(undefined, checklistState, notes, account.id, account.platform);
         
-        // Force complete state reset
-        setTimeout(() => {
-          setCurrentTime(new Date());
-        }, 0);
-        
-        setTimeout(() => {
-          setCurrentTime(new Date());
-        }, 100);
-        
-        setTimeout(() => {
-          setCurrentTime(new Date());
-        }, 250);
-        
-        setTimeout(() => {
-          setCurrentTime(new Date());
-        }, 500);
-        
-        console.log('✅ Post logged, forced refresh triggered');
+        // Force refresh
+        setTimeout(() => setCurrentTime(new Date()), 100);
       }
     }
-  };
-
-  // Determine shift based on USER's current local time (not platform time)
-  const getUserShift = (): 'morning' | 'evening' => {
-    const now = new Date();
-    const userHour = now.getHours(); // User's local hour
-    return userHour < 14 ? 'morning' : 'evening'; // Before 2 PM = morning, after = evening
   };
 
   const handleManualSync = async () => {
     setSyncing(true);
     try {
       await manualSync();
-      setCurrentTime(new Date()); // Force refresh
+      setCurrentTime(new Date());
     } catch (err: any) {
       alert(`❌ Sync failed: ${err.message}`);
     } finally {
@@ -265,67 +117,176 @@ export function ScheduleOverviewScreen() {
     }
   };
 
-  // Copy to clipboard helper
-  const copyToClipboard = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedText(id);
-    setTimeout(() => setCopiedText(null), 2000);
-  };
-
-  // Get button config based on timing
-  const getButtonConfig = (rec: RecommendedPost) => {
-    // Priority 1: Check if during cooldown (most important warning)
-    if (rec.isDuringCooldown && rec.cooldownEndsInMinutes) {
-      return {
-        text: `⚠️ COOLDOWN WARNING: Wait ${formatCountdown(rec.cooldownEndsInMinutes)} for optimal results`,
-        className: 'bg-orange-600 hover:bg-orange-700',
-        statusColor: 'bg-orange-500',
-        isWarning: true,
-        warningMessage: `You're in the cooldown period. For best results, wait ${formatCountdown(rec.cooldownEndsInMinutes)} before posting. However, you can still post now if needed.`
-      };
-    }
-    
-    // Priority 2: Perfect timing
-    if (rec.isPerfectTime) {
-      return {
-        text: '🎯 Perfect Time! Post Now',
-        className: 'bg-green-600 hover:bg-green-700',
-        statusColor: 'bg-green-500',
-        isWarning: false
-      };
-    } 
-    
-    // Priority 3: Too early
-    if (rec.isTooEarly) {
-      return {
-        text: `⏰ Too Early by ${formatCountdown(rec.minutesUntilRecommended)} • Recommended: ${rec.recommendedTimeCreatorTZ}`,
-        className: 'bg-amber-600 hover:bg-amber-700',
-        statusColor: 'bg-amber-500',
-        isWarning: false
-      };
-    } 
-    
-    // Priority 4: Too late
-    return {
-      text: `⏱️ ${formatCountdown(Math.abs(rec.minutesUntilRecommended))} Late • Was Recommended: ${rec.recommendedTimeCreatorTZ}`,
-      className: 'bg-red-600 hover:bg-red-700',
-      statusColor: 'bg-red-500',
-      isWarning: false
-    };
-  };
-
   const getOrdinal = (n: number) => {
-    if (n === 1) return 'First';
-    if (n === 2) return 'Second';
-    if (n === 3) return 'Third';
-    const s = ['th', 'st', 'nd', 'rd'];
-    const v = n % 100;
-    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+    if (n === 1) return '1st';
+    if (n === 2) return '2nd';
+    if (n === 3) return '3rd';
+    return `${n}th`;
   };
+
+  const renderPostCard = (rec: RecommendedPost) => {
+    const account = state.accounts.find(a => a.id === rec.accountId);
+    const creator = state.creators.find(c => c.id === account?.creatorId);
+    if (!account || !creator) return null;
+
+    const platformAccounts = state.accounts.filter(a => a.platform === rec.platform);
+    const accountIndex = platformAccounts.findIndex(a => a.id === account.id) + 1;
+
+    const isCompleted = rec.alreadyCompleted;
+    const isSkipped = rec.skipped;
+    const isPending = !isCompleted && !isSkipped;
+
+    return (
+      <Card 
+        key={`${rec.accountId}-${rec.shift}-${rec.postNumber}`}
+        className={`transition-all ${
+          isCompleted 
+            ? 'bg-green-50 border-2 border-green-200' 
+            : isSkipped
+            ? 'bg-yellow-50 border-2 border-yellow-200'
+            : 'bg-white border-2 border-gray-200 hover:border-blue-300'
+        }`}
+      >
+        <div className="flex items-start justify-between gap-4">
+          {/* Left side - Platform and Account Info */}
+          <div className="flex items-start gap-4 flex-1">
+            <div className={`p-3 rounded-lg ${PLATFORM_COLORS[rec.platform]}`}>
+              <PlatformIcon platform={rec.platform} className="w-8 h-8" />
+            </div>
+            
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-bold text-lg text-gray-900">
+                  {PLATFORM_NAMES[rec.platform]} {accountIndex}
+                </h3>
+                <span className="text-sm px-2 py-1 bg-gray-100 rounded-full font-medium">
+                  Post {rec.postNumber}
+                </span>
+              </div>
+              
+              <p className="text-sm text-gray-600 mb-2">{creator.name} • @{account.handle}</p>
+              
+              <div className="space-y-1 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-600">US Time:</span>
+                  <span className="font-medium text-gray-900">{rec.recommendedTimeCreatorTZ}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-600">Your Time:</span>
+                  <span className="font-medium text-gray-900">{rec.recommendedTimeUserTZ}</span>
+                </div>
+                
+                {/* Cooldown indicator */}
+                {isPending && rec.isDuringCooldown && rec.cooldownEndsInMinutes && (
+                  <div className="flex items-center gap-2 text-orange-600">
+                    <Timer className="w-4 h-4" />
+                    <span className="font-medium">Cooldown: {formatCountdown(rec.cooldownEndsInMinutes)}</span>
+                  </div>
+                )}
+                
+                {/* Timing indicator */}
+                {isPending && !rec.isDuringCooldown && (
+                  <div className="flex items-center gap-2">
+                    {rec.isPerfectTime ? (
+                      <span className="text-green-600 font-medium">🎯 Perfect Time!</span>
+                    ) : rec.isTooEarly ? (
+                      <span className="text-amber-600 font-medium">
+                        <Clock className="w-4 h-4 inline mr-1" />
+                        In {formatCountdown(rec.minutesUntilRecommended)}
+                      </span>
+                    ) : rec.isTooLate ? (
+                      <span className="text-red-600 font-medium">
+                        Late by {formatCountdown(Math.abs(rec.minutesUntilRecommended))}
+                      </span>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+
+              {/* Media Link */}
+              {isPending && account.telegramLink && (
+                <div className="mt-3">
+                  <a
+                    href={account.telegramLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-sm bg-blue-100 hover:bg-blue-200 text-blue-900 px-3 py-1.5 rounded-lg transition-colors font-medium"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    Open Media
+                  </a>
+                </div>
+              )}
+
+              {/* Caption preview for TikTok */}
+              {isPending && rec.platform === 'tiktok' && (() => {
+                const nextCaption = account.captions?.find(c => !c.used);
+                if (nextCaption) {
+                  return (
+                    <div className="mt-3 p-2 bg-purple-50 border border-purple-200 rounded-lg text-xs">
+                      <div className="font-semibold text-purple-900 mb-1">Caption Ready</div>
+                      <p className="text-purple-800 truncate">{nextCaption.title}</p>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+            </div>
+          </div>
+
+          {/* Right side - Status and Actions */}
+          <div className="flex flex-col items-end gap-2">
+            {isCompleted && (
+              <div className="flex items-center gap-2 text-green-600">
+                <CheckCircle className="w-6 h-6" />
+                <span className="font-semibold">Done</span>
+              </div>
+            )}
+            
+            {isSkipped && (
+              <div className="flex items-center gap-2 text-yellow-600">
+                <SkipForward className="w-6 h-6" />
+                <span className="font-semibold">Skipped</span>
+              </div>
+            )}
+            
+            {isPending && (
+              <div className="flex flex-col gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => handlePostNow(rec)}
+                  className="whitespace-nowrap"
+                >
+                  ✓ I Just Posted
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    skipPost(account.id, rec.platform, () => {
+                      setCurrentTime(new Date());
+                    });
+                  }}
+                  className="whitespace-nowrap"
+                >
+                  ⏭️ Skip
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </Card>
+    );
+  };
+
+  const completedCount = currentShiftPosts.filter(p => p.alreadyCompleted).length;
+  const skippedCount = currentShiftPosts.filter(p => p.skipped).length;
+  const totalCount = currentShiftPosts.length;
+  const pendingCount = totalCount - completedCount - skippedCount;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-3 sm:p-4 pb-24 sm:pb-4">
-      <div className="max-w-4xl mx-auto py-8">
+      <div className="max-w-6xl mx-auto py-8">
         {/* Sync Button */}
         {state.authState?.isAuthenticated && (
           <div className="mb-4 flex justify-end">
@@ -341,315 +302,105 @@ export function ScheduleOverviewScreen() {
           </div>
         )}
 
-        {/* Main Next Post Card */}
-        {nextRecommendation ? (
-          <Card className="shadow-2xl border-4 border-white mb-6">
-            {(() => {
-              const account = state.accounts.find(a => a.id === nextRecommendation.accountId);
-              const creator = state.creators.find(c => c.id === account?.creatorId);
-              if (!account || !creator) return null;
-
-              const platformAccounts = state.accounts.filter(a => a.platform === nextRecommendation.platform);
-              const accountIndex = platformAccounts.findIndex(a => a.id === account.id) + 1;
-              const platformName = PLATFORM_NAMES[nextRecommendation.platform];
-              const postLabel = getOrdinal(nextRecommendation.postNumber);
-              const buttonConfig = getButtonConfig(nextRecommendation);
-
-              return (
+        {/* Header */}
+        <Card className="shadow-xl mb-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
                 <div className="text-center">
-                  <div className="inline-block px-6 py-2 bg-blue-100 text-blue-900 rounded-full text-sm font-semibold mb-4">
-                    NEXT RECOMMENDED POST
-                  </div>
-                  
-                  <div className="flex items-center justify-center gap-4 mb-4">
-                    <PlatformIcon platform={nextRecommendation.platform} className="w-16 h-16" />
-                    {creator.profilePicture && (
-                      <img 
-                        src={creator.profilePicture} 
-                        alt={creator.name}
-                        className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
-                      />
-                    )}
-                    <div>
-                      <h1 className="text-5xl font-black text-gray-900">
-                        {platformName} {accountIndex}
+            <h1 className="text-4xl font-black mb-2">
+              {currentShift === 'morning' ? '🌅 Morning Shift' : '🌙 Evening Shift'}
                       </h1>
-                      <p className="text-xl text-gray-600">
-                        {creator.name}
-                      </p>
+            <p className="text-lg text-indigo-100 mb-4">
+              {format(currentTime, 'EEEE, MMMM d, yyyy • HH:mm:ss')}
+            </p>
+            
+            {/* Progress */}
+            <div className="flex items-center justify-center gap-6 text-sm">
+              <div>
+                <span className="font-bold text-2xl text-green-300">{completedCount}</span>
+                <span className="text-indigo-200 ml-1">Completed</span>
+                    </div>
+              <div>
+                <span className="font-bold text-2xl text-yellow-300">{skippedCount}</span>
+                <span className="text-indigo-200 ml-1">Skipped</span>
+                    </div>
+              <div>
+                <span className="font-bold text-2xl text-white">{pendingCount}</span>
+                <span className="text-indigo-200 ml-1">Pending</span>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-center gap-4 mb-6 text-sm flex-wrap">
-                    <div className="px-4 py-2 bg-gray-100 rounded-lg">
-                      <span className="text-gray-600">Username: </span>
-                      <span className="font-semibold text-gray-900">{account.handle}</span>
-                    </div>
-                    <div className="px-4 py-2 bg-blue-100 rounded-lg">
-                      <span className="text-blue-600">📱 </span>
-                      <span className="font-semibold text-blue-900">{account.device}</span>
-                    </div>
-                    <div className="px-4 py-2 bg-purple-100 rounded-lg">
-                      <span className="text-purple-600">
-                        {nextRecommendation.shift === 'morning' ? '🌅' : '🌙'} 
-                      </span>
-                      <span className="font-semibold text-purple-900 ml-1">
-                        {nextRecommendation.shift.charAt(0).toUpperCase() + nextRecommendation.shift.slice(1)} Shift
-                      </span>
+            {/* Progress bar */}
+            <div className="mt-4 bg-indigo-700 rounded-full h-3 overflow-hidden">
+              <div 
+                className="bg-green-400 h-full transition-all duration-500"
+                style={{ width: `${totalCount > 0 ? (completedCount / totalCount) * 100 : 0}%` }}
+              />
                     </div>
                   </div>
+        </Card>
 
-                  {/* Times Display */}
-                  <div className="grid grid-cols-2 gap-4 mb-6">
-                    <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl">
-                      <div className="text-xs text-purple-600 font-semibold mb-1">US Time</div>
-                      <div className="text-3xl font-black text-purple-900">
-                        {nextRecommendation.recommendedTimeCreatorTZ}
-                      </div>
-                      <div className="text-xs text-purple-600 mt-1">Central Time</div>
-                    </div>
-                    <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl">
-                      <div className="text-xs text-green-600 font-semibold mb-1">Your Time</div>
-                      <div className="text-3xl font-black text-green-900">
-                        {nextRecommendation.recommendedTimeUserTZ}
-                      </div>
-                      <div className="text-xs text-green-600 mt-1">{state.userSettings.userTimezone.split('/')[1]}</div>
-                    </div>
-                  </div>
-
-                  {/* Timing Status */}
-                  {nextRecommendation.isDuringCooldown && nextRecommendation.cooldownEndsInMinutes ? (
-                    <div className="p-6 bg-orange-50 border-4 border-orange-300 rounded-2xl mb-6">
-                      <div className="text-sm text-orange-600 font-semibold mb-2">
-                        ⚠️ COOLDOWN PERIOD ACTIVE
-                      </div>
-                      <div className="text-3xl font-black text-orange-900">
-                        Wait {formatCountdown(nextRecommendation.cooldownEndsInMinutes)} for Best Results
-                      </div>
-                      <div className="text-sm text-orange-700 mt-3 p-3 bg-orange-100 rounded-lg">
-                        <strong>Recommendation:</strong> Posting during cooldown may reduce engagement. 
-                        The algorithm works best with {COOLDOWN_MINUTES[nextRecommendation.platform]} minutes between posts.
-                        However, you can still post now if needed - it's your choice!
-                      </div>
-                    </div>
-                  ) : nextRecommendation.isPerfectTime ? (
-                    <div className="p-6 bg-green-50 border-2 border-green-200 rounded-2xl mb-6 animate-pulse">
-                      <div className="text-2xl font-bold text-green-900">
-                        🎯 Perfect Timing Window!
-                      </div>
-                      <div className="text-sm text-green-700 mt-2">
-                        Post now for optimal engagement
-                      </div>
-                    </div>
-                  ) : nextRecommendation.isTooEarly ? (
-                    <div className="p-6 bg-amber-50 border-2 border-amber-200 rounded-2xl mb-6">
-                      <div className="text-sm text-amber-600 font-semibold mb-2">
-                        You're {formatCountdown(nextRecommendation.minutesUntilRecommended)} Early
-                      </div>
-                      <div className="text-3xl font-black text-amber-900">
-                        ⏰ Not Recommended Yet
-                      </div>
-                      <div className="text-sm text-amber-700 mt-2">
-                        Recommended for {nextRecommendation.recommendedTimeCreatorTZ}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="p-6 bg-red-50 border-2 border-red-200 rounded-2xl mb-6">
-                      <div className="text-sm text-red-600 font-semibold mb-2">
-                        You're {formatCountdown(Math.abs(nextRecommendation.minutesUntilRecommended))} Late
-                      </div>
-                      <div className="text-3xl font-black text-red-900">
-                        ⏱️ Past Recommended Time
-                      </div>
-                      <div className="text-sm text-red-700 mt-2">
-                        Was recommended for {nextRecommendation.recommendedTimeCreatorTZ}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Media Link & Caption Section */}
-                  <div className="mb-6 space-y-4">
-                    {/* Telegram Media Link */}
-                    {account.telegramLink && (
-                      <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <ExternalLink className="w-5 h-5 text-blue-600" />
-                            <span className="font-semibold text-blue-900">Media Link (Telegram)</span>
-                          </div>
-                          <a
-                            href={account.telegramLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                            Open Media
-                          </a>
-                        </div>
+        {/* Current Shift Posts */}
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            📋 {currentShift === 'morning' ? 'Morning' : 'Evening'} Shift Checklist
+          </h2>
+          
+          {currentShiftPosts.length === 0 ? (
+            <Card className="text-center p-8">
+              <p className="text-gray-600">No posts scheduled for this shift</p>
+            </Card>
+          ) : pendingCount === 0 ? (
+            <Card className="text-center p-8 bg-green-50 border-2 border-green-200">
+              <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
+              <h3 className="text-2xl font-bold text-green-900 mb-2">
+                {currentShift === 'morning' ? 'Morning' : 'Evening'} Shift Complete! 🎉
+              </h3>
+              <p className="text-green-700">
+                Great job! You've completed all posts for this shift.
+              </p>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {currentShiftPosts.map(rec => renderPostCard(rec))}
                       </div>
                     )}
-
-                    {/* Caption Display for TikTok */}
-                    {nextRecommendation.platform === 'tiktok' && (() => {
-                      const nextCaption = account.captions?.find(c => !c.used);
-                      if (nextCaption) {
-                        return (
-                          <div className="p-4 bg-purple-50 border-2 border-purple-200 rounded-xl">
-                            <div className="font-semibold text-purple-900 mb-3 flex items-center justify-between">
-                              <span>📝 Next Caption Ready</span>
-                              <span className="text-xs bg-purple-200 px-2 py-1 rounded-full">
-                                {account.captions?.filter(c => !c.used).length} unused
-                              </span>
                             </div>
                             
-                            {/* Slides - Each with Copy Button */}
-                            <div className="mb-3">
-                              <p className="text-xs text-purple-600 font-semibold mb-2">Slides ({nextCaption.slides.length}):</p>
-                              <div className="space-y-2 max-h-64 overflow-y-auto">
-                                {nextCaption.slides.map((slide, i) => (
-                                  <div key={i} className="flex items-start gap-2 bg-white p-2 rounded-lg border border-purple-200">
-                                    <span className="text-xs font-bold text-purple-500 mt-1 flex-shrink-0">{i + 1}.</span>
-                                    <p className="text-sm text-gray-800 flex-1">{slide}</p>
-                                    <button
-                                      onClick={() => copyToClipboard(slide, `today-slide-${i}`)}
-                                      className="p-1 hover:bg-purple-100 rounded transition-colors flex-shrink-0"
-                                    >
-                                      {copiedText === `today-slide-${i}` ? (
-                                        <CheckCircle className="w-4 h-4 text-green-600" />
-                                      ) : (
-                                        <Copy className="w-4 h-4 text-purple-600" />
-                                      )}
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Title + Hashtags */}
-                            <div className="bg-white p-3 rounded-lg">
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex-1">
-                                  <p className="text-xs text-purple-600 font-semibold mb-1">Title + Hashtags:</p>
-                                  <p className="text-sm text-gray-900 font-medium">{nextCaption.title}</p>
-                                  <p className="text-sm text-purple-700 mt-1">{nextCaption.hashtags}</p>
-                                </div>
-                                <button
-                                  onClick={() => copyToClipboard(`${nextCaption.title}\n\n${nextCaption.hashtags}`, 'caption-preview')}
-                                  className="p-2 hover:bg-purple-100 rounded transition-colors flex-shrink-0"
-                                >
-                                  {copiedText === 'caption-preview' ? (
-                                    <CheckCircle className="w-5 h-5 text-green-600" />
-                                  ) : (
-                                    <Copy className="w-5 h-5 text-purple-600" />
-                                  )}
-                                </button>
-                              </div>
-                            </div>
-
-                            <p className="text-xs text-purple-600 mt-2">
-                              💡 Full caption details available in Content tab
-                            </p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    })()}
-                  </div>
-
-                  {/* Post Button - Always Enabled */}
-                  <Button
-                    onClick={() => handlePostNow(nextRecommendation)}
-                    size="lg"
-                    className={`text-lg px-8 py-6 rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all ${buttonConfig.className} mb-4`}
-                  >
-                    ✓ I Just Made {postLabel} Post of {getUserShift().charAt(0).toUpperCase() + getUserShift().slice(1)} Shift
-                  </Button>
-
-                  {/* Skip Button */}
-                  <Button
-                    onClick={() => {
-                      skipPost(account.id, nextRecommendation.platform, () => {
-                        // Force immediate refresh of recommendations AFTER state update
-                        setCurrentTime(new Date());
-                        
-                        setTimeout(() => {
-                          setCurrentTime(new Date());
-                        }, 50);
-                        
-                        setTimeout(() => {
-                          setCurrentTime(new Date());
-                        }, 150);
-                        
-                        setTimeout(() => {
-                          setCurrentTime(new Date());
-                        }, 300);
-                        
-                        console.log('⏭️ Post skipped, UI refreshed');
-                      });
-                    }}
-                    variant="ghost"
-                    size="lg"
-                    className="w-full text-base mb-4"
-                  >
-                    ⏭️ Skip This Post
-                  </Button>
-
-                  {/* Timing feedback */}
-                  <div className="p-4 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-700">
-                      {buttonConfig.text}
-                    </p>
-                  </div>
-
-                  {/* Next recommendations preview */}
-                  {recommendations.length > 1 && (
-                    <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                      <p className="text-sm text-gray-700 mb-3">
-                        <strong>Next in queue:</strong>
-                      </p>
-                      <div className="space-y-2">
-                        {recommendations.slice(1, 4).map((rec) => {
-                          const acc = state.accounts.find(a => a.id === rec.accountId);
-                          const cre = state.creators.find(c => c.id === acc?.creatorId);
-                          if (!acc || !cre) return null;
-                          
-                          const platAccs = state.accounts.filter(a => a.platform === rec.platform);
-                          const accIdx = platAccs.findIndex(a => a.id === acc.id) + 1;
-                          const minutes = getMinutesUntil(rec.recommendedTimeUTC);
+        {/* Other Shift Preview */}
+        {otherShiftPosts.length > 0 && (
+          <div className="mb-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">
+              👀 {currentShift === 'morning' ? 'Evening' : 'Morning'} Shift Preview
+            </h2>
+            <Card className="bg-gray-50">
+              <p className="text-sm text-gray-600 mb-3">
+                Coming up in the {currentShift === 'morning' ? 'evening' : 'morning'}:
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {otherShiftPosts.slice(0, 8).map(rec => {
+                  const account = state.accounts.find(a => a.id === rec.accountId);
+                  const platformAccounts = state.accounts.filter(a => a.platform === rec.platform);
+                  const accountIndex = platformAccounts.findIndex(a => a.id === account?.id) + 1;
                           
                           return (
-                            <div key={rec.accountId + rec.shift} className="flex items-center justify-between text-sm">
-                              <div className="flex items-center gap-2">
+                    <div 
+                      key={`${rec.accountId}-${rec.shift}-${rec.postNumber}`}
+                      className="flex items-center gap-2 text-sm bg-white p-2 rounded-lg"
+                    >
                                 <PlatformIcon platform={rec.platform} className="w-4 h-4" />
-                                <span className="font-semibold">
-                                  {PLATFORM_NAMES[rec.platform]} {accIdx} ({rec.shift})
-                                </span>
-                              </div>
-                              <span className="text-gray-600">
-                                in {formatCountdown(minutes)}
+                      <span className="font-medium text-gray-900">
+                        {PLATFORM_NAMES[rec.platform]} {accountIndex}
                               </span>
                             </div>
                           );
                         })}
                       </div>
-                    </div>
+              {otherShiftPosts.length > 8 && (
+                <p className="text-xs text-gray-500 mt-2">
+                  +{otherShiftPosts.length - 8} more posts
+                </p>
                   )}
+            </Card>
                 </div>
-              );
-            })()}
-          </Card>
-        ) : (
-          <Card className="shadow-2xl text-center p-12">
-            <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">All Done! 🎉</h2>
-            <p className="text-gray-600 mb-4">
-              You've completed all recommended posts for today.
-            </p>
-            <Button onClick={() => setCurrentScreen('scheduled-posts')}>
-              View Today's Schedule
-            </Button>
-          </Card>
         )}
 
         {/* Quick Access */}

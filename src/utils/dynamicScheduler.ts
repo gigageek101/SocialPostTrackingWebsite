@@ -31,6 +31,8 @@ export interface RecommendedPost {
   minutesUntilRecommended: number; // Minutes until recommended time (negative if past)
   isDuringCooldown: boolean; // True if posting before cooldown period ends
   cooldownEndsInMinutes?: number; // Minutes until cooldown ends (if applicable)
+  alreadyCompleted?: boolean; // True if this post was already made (for checklist view)
+  skipped?: boolean; // True if this post was skipped
 }
 
 /**
@@ -156,7 +158,8 @@ export function getNextRecommendedPost(
 }
 
 /**
- * Get all recommended posts for today (across all accounts)
+ * Get all recommended posts for today (across all accounts) - JUST THE NEXT ONE PER ACCOUNT/SHIFT
+ * Used for the old "one at a time" view
  */
 export function getAllRecommendedPosts(
   accounts: PlatformAccount[],
@@ -200,15 +203,13 @@ export function getAllRecommendedPosts(
     // Third priority: Platform-based ordering within each shift
     const platformOrder = (rec: RecommendedPost): number => {
       if (rec.shift === 'morning') {
-        // Morning: TikTok/Threads post 1, then IG/FB, then TikTok/Threads 2+
-        if (rec.platform === 'tiktok' && rec.postNumber === 1) return 1;
-        if (rec.platform === 'threads' && rec.postNumber === 1) return 2;
-        if (rec.platform === 'instagram') return 3;
-        if (rec.platform === 'facebook') return 4;
-        if (rec.platform === 'tiktok') return 5;
-        if (rec.platform === 'threads') return 6;
+        // Morning: Complete ALL TikTok posts first, then IG/FB, then ALL Threads posts
+        if (rec.platform === 'tiktok') return 1; // All TikTok posts (1, 2, 3)
+        if (rec.platform === 'instagram') return 2;
+        if (rec.platform === 'facebook') return 3;
+        if (rec.platform === 'threads') return 4; // All Threads posts (1, 2, 3)
       } else {
-        // Evening: TikTok/Threads first, then IG/FB at end
+        // Evening: ALL TikTok first, ALL Threads, then IG/FB at end
         if (rec.platform === 'tiktok') return 1;
         if (rec.platform === 'threads') return 2;
         if (rec.platform === 'instagram') return 3;
@@ -234,6 +235,284 @@ export function getAllRecommendedPosts(
   });
   
   return recommendations;
+}
+
+/**
+ * Get ALL recommended posts for a specific shift (ALL posts, not just the next one)
+ * This shows the full checklist of posts for the shift
+ */
+export function getAllPostsForShift(
+  accounts: PlatformAccount[],
+  creators: Creator[],
+  userSettings: UserSettings,
+  shift: 'morning' | 'evening',
+  todayPosts: PostLogEntry[]
+): RecommendedPost[] {
+  const recommendations: RecommendedPost[] = [];
+  
+  for (const account of accounts) {
+    const creator = creators.find(c => c.id === account.creatorId);
+    if (!creator) continue;
+    
+    // Get ALL posts for this account in this shift
+    const maxPosts = getMaxPostsForPlatformShift(account.platform, shift);
+    
+    // Get all posts made for this account today (including skipped)
+    const accountPostsToday = todayPosts
+      .filter(p => p.accountId === account.id)
+      .sort((a, b) => a.timestampUTC.localeCompare(b.timestampUTC));
+    
+    // Separate completed from skipped
+    const completedPosts = accountPostsToday.filter(p => !p.skipped);
+    const skippedPosts = accountPostsToday.filter(p => p.skipped);
+    
+    const shiftCompletedPosts = completedPosts.filter(p => {
+      const userTimeStr = p.timestampUserTZ;
+      const isPM = userTimeStr.includes('PM');
+      const timeMatch = userTimeStr.match(/(\d+):(\d+)/);
+      
+      if (timeMatch) {
+        let hour = parseInt(timeMatch[1]);
+        if (isPM && hour !== 12) hour += 12;
+        if (!isPM && hour === 12) hour = 0;
+        const postShift = hour < 14 ? 'morning' : 'evening';
+        return postShift === shift;
+      }
+      return false;
+    });
+    
+    const shiftSkippedPosts = skippedPosts.filter(p => {
+      const userTimeStr = p.timestampUserTZ;
+      const isPM = userTimeStr.includes('PM');
+      const timeMatch = userTimeStr.match(/(\d+):(\d+)/);
+      
+      if (timeMatch) {
+        let hour = parseInt(timeMatch[1]);
+        if (isPM && hour !== 12) hour += 12;
+        if (!isPM && hour === 12) hour = 0;
+        const postShift = hour < 14 ? 'morning' : 'evening';
+        return postShift === shift;
+      }
+      return false;
+    });
+    
+    // Generate recommendations for ALL posts (including already completed/skipped)
+    for (let postNum = 1; postNum <= maxPosts; postNum++) {
+      // Check if this post was completed
+      const existingPost = shiftCompletedPosts.find((_, idx) => idx + 1 === postNum);
+      // Check if this post was skipped
+      const wasSkipped = shiftSkippedPosts.some((_, idx) => idx + 1 === postNum);
+      
+      if (existingPost) {
+        // This post was already made - mark as completed
+        recommendations.push({
+          accountId: account.id,
+          platform: account.platform,
+          recommendedTimeUTC: existingPost.timestampUTC,
+          recommendedTimeCreatorTZ: existingPost.timestampCreatorTZ,
+          recommendedTimeUserTZ: existingPost.timestampUserTZ,
+          shift,
+          postNumber: postNum,
+          isReady: true,
+          isTooEarly: false,
+          isPerfectTime: false,
+          isTooLate: false,
+          basedOnPreviousPost: postNum > 1,
+          minutesUntilRecommended: 0,
+          isDuringCooldown: false,
+          alreadyCompleted: true,
+          skipped: false,
+        });
+      } else if (wasSkipped) {
+        // This post was skipped
+        const skippedPost = shiftSkippedPosts.find((_, idx) => idx + 1 === postNum);
+        recommendations.push({
+          accountId: account.id,
+          platform: account.platform,
+          recommendedTimeUTC: skippedPost!.timestampUTC,
+          recommendedTimeCreatorTZ: skippedPost!.timestampCreatorTZ,
+          recommendedTimeUserTZ: skippedPost!.timestampUserTZ,
+          shift,
+          postNumber: postNum,
+          isReady: true,
+          isTooEarly: false,
+          isPerfectTime: false,
+          isTooLate: false,
+          basedOnPreviousPost: postNum > 1,
+          minutesUntilRecommended: 0,
+          isDuringCooldown: false,
+          alreadyCompleted: false,
+          skipped: true,
+        });
+      } else {
+        // This post is pending - calculate recommendation
+        const rec = calculateRecommendationForPost(
+          account,
+          userSettings,
+          shift,
+          postNum,
+          shiftCompletedPosts,
+          todayPosts
+        );
+        if (rec) {
+          recommendations.push({
+            ...rec,
+            alreadyCompleted: false,
+            skipped: false,
+          });
+        }
+      }
+    }
+  }
+  
+  // Sort by workflow order
+  recommendations.sort((a, b) => {
+    // All items in this function should be from the same shift, but let's be safe
+    const shift = a.shift;
+    
+    if (shift === 'morning') {
+      // Morning shift order:
+      // TikTok1 Post1, TikTok2 Post1, Threads1 Post1, Threads2 Post1, Instagram Post1, Facebook Post1,
+      // TikTok1 Post2, TikTok2 Post2, Threads1 Post2, Threads2 Post2,
+      // TikTok1 Post3, TikTok2 Post3, Threads1 Post3, Threads2 Post3
+      
+      // First sort by post number
+      if (a.postNumber !== b.postNumber) {
+        return a.postNumber - b.postNumber;
+      }
+      
+      // Then by platform order (TikTok, Threads, Instagram, Facebook)
+      const platformOrder = (platform: string) => {
+        if (platform === 'tiktok') return 1;
+        if (platform === 'threads') return 2;
+        if (platform === 'instagram') return 3;
+        if (platform === 'facebook') return 4;
+        return 999;
+      };
+      
+      const platformDiff = platformOrder(a.platform) - platformOrder(b.platform);
+      if (platformDiff !== 0) {
+        return platformDiff;
+      }
+      
+      // Then by account ID to keep accounts in order
+      return a.accountId.localeCompare(b.accountId);
+    } else {
+      // Evening shift order:
+      // TikTok1 Post1, TikTok2 Post1, Threads1 Post1, Threads2 Post1,
+      // TikTok1 Post2, TikTok2 Post2, Threads1 Post2, Threads2 Post2,
+      // TikTok1 Post3, TikTok2 Post3, Threads1 Post3, Threads2 Post3,
+      // Instagram Post1, Facebook Post1
+      
+      // Instagram and Facebook go to the end
+      const isASpecial = a.platform === 'instagram' || a.platform === 'facebook';
+      const isBSpecial = b.platform === 'instagram' || b.platform === 'facebook';
+      
+      if (isASpecial && !isBSpecial) return 1;
+      if (!isASpecial && isBSpecial) return -1;
+      
+      // For TikTok/Threads OR for Instagram/Facebook, sort by post number first
+      if (a.postNumber !== b.postNumber) {
+        return a.postNumber - b.postNumber;
+      }
+      
+      // Then by platform order
+      const platformOrder = (platform: string) => {
+        if (platform === 'tiktok') return 1;
+        if (platform === 'threads') return 2;
+        if (platform === 'instagram') return 3;
+        if (platform === 'facebook') return 4;
+        return 999;
+      };
+      
+      const platformDiff = platformOrder(a.platform) - platformOrder(b.platform);
+      if (platformDiff !== 0) {
+        return platformDiff;
+      }
+      
+      // Then by account ID
+      return a.accountId.localeCompare(b.accountId);
+    }
+  });
+  
+  return recommendations;
+}
+
+/**
+ * Calculate recommendation for a specific post number
+ */
+function calculateRecommendationForPost(
+  account: PlatformAccount,
+  userSettings: UserSettings,
+  shift: 'morning' | 'evening',
+  postNumber: number,
+  shiftPosts: PostLogEntry[],
+  todayPosts: PostLogEntry[]
+): RecommendedPost | null {
+  const platform = account.platform;
+  
+  // Calculate recommended time
+  let recommendedTimeUTC: string;
+  let basedOnPreviousPost = false;
+  let isDuringCooldown = false;
+  let cooldownEndsInMinutes: number | undefined = undefined;
+  
+  if (postNumber === 1) {
+    // First post of shift - use base time
+    recommendedTimeUTC = getBaseTimeForShift(platform, shift, US_TIMEZONE);
+  } else {
+    // Calculate from previous post + cooldown
+    const previousPostIndex = postNumber - 2; // 0-indexed
+    if (previousPostIndex >= shiftPosts.length) {
+      // Previous post hasn't been made yet - calculate from base time
+      recommendedTimeUTC = getBaseTimeForShift(platform, shift, US_TIMEZONE);
+      const cooldown = COOLDOWN_MINUTES[platform];
+      recommendedTimeUTC = addMinutesTime(recommendedTimeUTC, cooldown * (postNumber - 1));
+    } else {
+      const previousPost = shiftPosts[previousPostIndex];
+      const cooldown = COOLDOWN_MINUTES[platform];
+      recommendedTimeUTC = addMinutesTime(previousPost.timestampUTC, cooldown);
+      basedOnPreviousPost = true;
+      
+      // Check if we're still in cooldown period
+      const now = new Date();
+      const previousPostTime = new Date(previousPost.timestampUTC);
+      const minutesSincePreviousPost = Math.round((now.getTime() - previousPostTime.getTime()) / 1000 / 60);
+      
+      if (minutesSincePreviousPost < cooldown) {
+        isDuringCooldown = true;
+        cooldownEndsInMinutes = cooldown - minutesSincePreviousPost;
+      }
+    }
+  }
+  
+  // Check timing status
+  const now = new Date();
+  const recommendedDate = new Date(recommendedTimeUTC);
+  const minutesUntilRecommended = Math.round((recommendedDate.getTime() - now.getTime()) / 1000 / 60);
+  
+  const isReady = minutesUntilRecommended <= 0;
+  const isTooEarly = minutesUntilRecommended > 15;
+  const isPerfectTime = minutesUntilRecommended >= -15 && minutesUntilRecommended <= 15;
+  const isTooLate = minutesUntilRecommended < -15;
+  
+  return {
+    accountId: account.id,
+    platform,
+    recommendedTimeUTC,
+    recommendedTimeCreatorTZ: formatInTimezone(recommendedTimeUTC, US_TIMEZONE, false),
+    recommendedTimeUserTZ: formatInTimezone(recommendedTimeUTC, userSettings.userTimezone, false),
+    shift,
+    postNumber,
+    isReady,
+    isTooEarly,
+    isPerfectTime,
+    isTooLate,
+    basedOnPreviousPost,
+    minutesUntilRecommended,
+    isDuringCooldown,
+    cooldownEndsInMinutes,
+  };
 }
 
 /**
