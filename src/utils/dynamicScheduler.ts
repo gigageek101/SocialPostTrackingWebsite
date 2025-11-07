@@ -47,7 +47,7 @@ export function getNextRecommendedPost(
   
   // Get all posts for this account today in this shift
   const accountPostsToday = todayPosts
-    .filter(p => p.accountId === account.id)
+    .filter(p => p.accountId === account.id && !p.skipped)
     .sort((a, b) => a.timestampUTC.localeCompare(b.timestampUTC));
   
   // Separate by shift - Use USER's local time from the logged post, NOT UTC!

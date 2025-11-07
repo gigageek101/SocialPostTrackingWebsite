@@ -14,7 +14,7 @@ import { sendTelegramNotification, formatPostReadyNotification } from '../../ser
 import { hasNotificationBeenSent, markNotificationAsSent, generateNotificationKey, clearOldNotifications } from '../../utils/notificationTracker';
 
 export function ScheduleOverviewScreen() {
-  const { state, logPost, setCurrentScreen } = useApp();
+  const { state, logPost, skipPost, setCurrentScreen } = useApp();
   const [selectedRecommendation, setSelectedRecommendation] = useState<RecommendedPost | null>(null);
   const [showChecklist, setShowChecklist] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -531,6 +531,19 @@ export function ScheduleOverviewScreen() {
                     className={`text-lg px-8 py-6 rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all ${buttonConfig.className} mb-4`}
                   >
                     ✓ I Just Made {postLabel} Post of {getUserShift().charAt(0).toUpperCase() + getUserShift().slice(1)} Shift
+                  </Button>
+
+                  {/* Skip Button */}
+                  <Button
+                    onClick={() => {
+                      skipPost(account.id, nextRecommendation.platform);
+                      console.log('⏭️ Post skipped, moving to next recommendation');
+                    }}
+                    variant="ghost"
+                    size="lg"
+                    className="w-full text-base mb-4"
+                  >
+                    ⏭️ Skip This Post
                   </Button>
 
                   {/* Timing feedback */}

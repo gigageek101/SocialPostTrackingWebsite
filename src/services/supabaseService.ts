@@ -388,6 +388,7 @@ export async function syncPostLog(log: PostLogEntry): Promise<{ error: string | 
         checklist_state: log.checklistState,
         notes: log.notes,
         caption_id: log.captionId,
+        skipped: log.skipped || false,
       }, { onConflict: 'id' });
 
     if (error) {

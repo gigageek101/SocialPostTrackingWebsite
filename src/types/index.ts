@@ -96,6 +96,7 @@ export interface PostLogEntry {
   checklistState: ChecklistState;
   notes: string;
   captionId?: string; // Caption used for this post (TikTok only)
+  skipped?: boolean; // True if post was skipped (no cooldown applied)
   createdAt: string;
 }
 

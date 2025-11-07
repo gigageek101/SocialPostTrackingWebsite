@@ -55,6 +55,7 @@ interface AppContextType {
   
   // Posts
   logPost: (slotId: string | undefined, checklistState: ChecklistState, notes: string, accountId?: string, platform?: Platform) => void;
+  skipPost: (accountId: string, platform: Platform) => void;
   logUnscheduledPost: (accountId: string, platform: string, checklistState: ChecklistState, notes: string) => void;
   
   // Daily plans
@@ -639,6 +640,61 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const skipPost = (accountId: string, platform: Platform) => {
+    const now = getCurrentUTC();
+    
+    const account = state.accounts.find((a) => a.id === accountId);
+    if (!account) return;
+    
+    const creator = state.creators.find((c) => c.id === account.creatorId);
+    
+    const postLog: PostLogEntry = {
+      id: generateId(),
+      slotId: undefined,
+      accountId,
+      platform,
+      timestampUTC: now,
+      timestampCreatorTZ: formatInTimezone(
+        now,
+        creator?.timezone || DEFAULT_CREATOR_TIMEZONE,
+        true
+      ),
+      timestampUserTZ: formatInTimezone(
+        now,
+        state.userSettings?.userTimezone || getBrowserTimezone(),
+        true
+      ),
+      checklistState: {
+        platform,
+        items: [],
+        modified: false,
+      },
+      notes: 'Post skipped',
+      skipped: true, // Mark as skipped
+      createdAt: now,
+    };
+    
+    setState((prev) => ({
+      ...prev,
+      postLogs: [...prev.postLogs, postLog],
+    }));
+    
+    // Sync to Supabase
+    if (state.authState.isAuthenticated) {
+      setTimeout(async () => {
+        console.log('⬆️ Syncing skipped post to Supabase');
+        const result = await syncPostLog(postLog);
+        if (result.error) {
+          console.error('❌ Failed to sync skipped post:', result.error);
+        } else {
+          console.log('✅ Skipped post synced to cloud');
+        }
+      }, 100);
+    }
+    
+    console.log('⏭️ Post skipped (no cooldown applied)');
+  };
+
   const logUnscheduledPost = (
     accountId: string,
     platform: string,
@@ -894,6 +950,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateAccount,
         deleteAccount,
         logPost,
+        skipPost,
         logUnscheduledPost,
         getTodayPlan,
         refreshDailyPlan,
