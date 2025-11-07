@@ -541,22 +541,24 @@ export function ScheduleOverviewScreen() {
                   {/* Skip Button */}
                   <Button
                     onClick={() => {
-                      skipPost(account.id, nextRecommendation.platform);
-                      
-                      // Force immediate refresh of recommendations (same as post)
-                      setTimeout(() => {
+                      skipPost(account.id, nextRecommendation.platform, () => {
+                        // Force immediate refresh of recommendations AFTER state update
                         setCurrentTime(new Date());
-                      }, 100);
-                      
-                      setTimeout(() => {
-                        setCurrentTime(new Date());
-                      }, 250);
-                      
-                      setTimeout(() => {
-                        setCurrentTime(new Date());
-                      }, 500);
-                      
-                      console.log('⏭️ Post skipped, forced refresh triggered');
+                        
+                        setTimeout(() => {
+                          setCurrentTime(new Date());
+                        }, 50);
+                        
+                        setTimeout(() => {
+                          setCurrentTime(new Date());
+                        }, 150);
+                        
+                        setTimeout(() => {
+                          setCurrentTime(new Date());
+                        }, 300);
+                        
+                        console.log('⏭️ Post skipped, UI refreshed');
+                      });
                     }}
                     variant="ghost"
                     size="lg"

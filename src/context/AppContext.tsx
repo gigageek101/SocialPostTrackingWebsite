@@ -55,7 +55,7 @@ interface AppContextType {
   
   // Posts
   logPost: (slotId: string | undefined, checklistState: ChecklistState, notes: string, accountId?: string, platform?: Platform) => void;
-  skipPost: (accountId: string, platform: Platform) => void;
+  skipPost: (accountId: string, platform: Platform, onComplete?: () => void) => void;
   logUnscheduledPost: (accountId: string, platform: string, checklistState: ChecklistState, notes: string) => void;
   
   // Daily plans
@@ -640,7 +640,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const skipPost = (accountId: string, platform: Platform) => {
+  const skipPost = (accountId: string, platform: Platform, onComplete?: () => void) => {
     const now = getCurrentUTC();
     
     const account = state.accounts.find((a) => a.id === accountId);
@@ -679,6 +679,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       postLogs: [...prev.postLogs, postLog],
     }));
     
+    console.log('⏭️ Post skipped (no cooldown applied)');
+    
+    // Call onComplete callback after state update
+    if (onComplete) {
+      // Use setTimeout to ensure state has propagated
+      setTimeout(onComplete, 50);
+    }
+    
     // Sync to Supabase
     if (state.authState.isAuthenticated) {
       setTimeout(async () => {
@@ -691,8 +699,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       }, 100);
     }
-    
-    console.log('⏭️ Post skipped (no cooldown applied)');
   };
 
   const logUnscheduledPost = (

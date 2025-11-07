@@ -4,7 +4,7 @@ import { Card } from '../ui/Card';
 import { PlatformIcon } from '../ui/PlatformIcon';
 import { PLATFORM_NAMES, PLATFORM_BASE_TIMES } from '../../constants/platforms';
 import { format } from 'date-fns';
-import { Clock, CheckCircle, ChevronDown, ChevronUp, Info, Copy, Check, ExternalLink } from 'lucide-react';
+import { Clock, CheckCircle, ChevronDown, ChevronUp, Info, Copy, Check, ExternalLink, SkipForward } from 'lucide-react';
 import { PostLogEntry } from '../../types';
 
 export function ScheduledPostsScreen() {
@@ -122,11 +122,16 @@ export function ScheduledPostsScreen() {
               <div className="p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <CheckCircle className="w-6 h-6 text-green-600" />
+                    {post.skipped ? (
+                      <SkipForward className="w-6 h-6 text-yellow-600" />
+                    ) : (
+                      <CheckCircle className="w-6 h-6 text-green-600" />
+                    )}
                     <PlatformIcon platform={post.platform} className="w-8 h-8" />
                     <div>
                       <h3 className="font-bold text-lg text-gray-900">
                         {PLATFORM_NAMES[post.platform]} {accountIndex} - {creator.name}
+                        {post.skipped && <span className="ml-2 text-yellow-600 text-sm">(Skipped)</span>}
                       </h3>
                       <p className="text-sm text-gray-600">@{account.handle} • 📱 {account.device}</p>
                     </div>
