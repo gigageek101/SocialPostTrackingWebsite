@@ -157,7 +157,7 @@ export function ScheduleOverviewScreen() {
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <h3 className="font-bold text-lg text-gray-900">
-                  {PLATFORM_NAMES[rec.platform]} {accountIndex}
+                  {PLATFORM_NAMES[rec.platform]} Account {accountIndex}
                 </h3>
                 <span className="text-sm px-2 py-1 bg-gray-100 rounded-full font-medium">
                   Post {rec.postNumber}

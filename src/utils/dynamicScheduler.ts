@@ -369,11 +369,17 @@ export function getAllPostsForShift(
     // All items in this function should be from the same shift, but let's be safe
     const shift = a.shift;
     
+    // Helper to get account index within platform
+    const getAccountIndex = (accountId: string, platform: Platform) => {
+      const platformAccounts = accounts.filter(acc => acc.platform === platform);
+      return platformAccounts.findIndex(acc => acc.id === accountId);
+    };
+    
     if (shift === 'morning') {
       // Morning shift order:
-      // TikTok1 Post1, TikTok2 Post1, Threads1 Post1, Threads2 Post1, Instagram Post1, Facebook Post1,
-      // TikTok1 Post2, TikTok2 Post2, Threads1 Post2, Threads2 Post2,
-      // TikTok1 Post3, TikTok2 Post3, Threads1 Post3, Threads2 Post3
+      // TikTok Account 1 Post1, TikTok Account 2 Post1, Threads Account 1 Post1, Threads Account 2 Post1, Instagram Post1, Facebook Post1,
+      // TikTok Account 1 Post2, TikTok Account 2 Post2, Threads Account 1 Post2, Threads Account 2 Post2,
+      // TikTok Account 1 Post3, TikTok Account 2 Post3, Threads Account 1 Post3, Threads Account 2 Post3
       
       // First sort by post number
       if (a.postNumber !== b.postNumber) {
@@ -394,13 +400,13 @@ export function getAllPostsForShift(
         return platformDiff;
       }
       
-      // Then by account ID to keep accounts in order
-      return a.accountId.localeCompare(b.accountId);
+      // Then by account index (Account 1 before Account 2)
+      return getAccountIndex(a.accountId, a.platform) - getAccountIndex(b.accountId, b.platform);
     } else {
       // Evening shift order:
-      // TikTok1 Post1, TikTok2 Post1, Threads1 Post1, Threads2 Post1,
-      // TikTok1 Post2, TikTok2 Post2, Threads1 Post2, Threads2 Post2,
-      // TikTok1 Post3, TikTok2 Post3, Threads1 Post3, Threads2 Post3,
+      // TikTok Account 1 Post1, TikTok Account 2 Post1, Threads Account 1 Post1, Threads Account 2 Post1,
+      // TikTok Account 1 Post2, TikTok Account 2 Post2, Threads Account 1 Post2, Threads Account 2 Post2,
+      // TikTok Account 1 Post3, TikTok Account 2 Post3, Threads Account 1 Post3, Threads Account 2 Post3,
       // Instagram Post1, Facebook Post1
       
       // Instagram and Facebook go to the end
@@ -429,8 +435,8 @@ export function getAllPostsForShift(
         return platformDiff;
       }
       
-      // Then by account ID
-      return a.accountId.localeCompare(b.accountId);
+      // Then by account index (Account 1 before Account 2)
+      return getAccountIndex(a.accountId, a.platform) - getAccountIndex(b.accountId, b.platform);
     }
   });
   
