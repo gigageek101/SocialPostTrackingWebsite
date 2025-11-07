@@ -171,47 +171,56 @@ export function getAllRecommendedPosts(
     if (!creator) continue;
     
     // Get ALL remaining posts for morning shift
-    let morningRec = getNextRecommendedPost(account, creator, userSettings, 'morning', todayPosts);
-    while (morningRec) {
+    let simulatedMorningPosts = [...todayPosts];
+    let morningRec = getNextRecommendedPost(account, creator, userSettings, 'morning', simulatedMorningPosts);
+    let morningCount = 0;
+    const maxPostsPerShift = 5; // Safety limit
+    
+    while (morningRec && morningCount < maxPostsPerShift) {
       recommendations.push(morningRec);
+      morningCount++;
       
-      // Simulate the post being made to get the next one
-      const simulatedPosts = [...todayPosts, {
-        id: `sim-${morningRec.postNumber}`,
+      // Add this post to simulated posts for next calculation
+      simulatedMorningPosts = [...simulatedMorningPosts, {
+        id: `sim-morning-${account.id}-${morningCount}`,
         accountId: account.id,
         platform: account.platform,
         timestampUTC: morningRec.recommendedTimeUTC,
         timestampCreatorTZ: '',
-        timestampUserTZ: '',
+        timestampUserTZ: format(new Date(morningRec.recommendedTimeUTC), 'MMM d, h:mm a'),
         checklistState: { platform: account.platform, items: [], modified: false },
         notes: 'simulated',
         skipped: false,
         createdAt: morningRec.recommendedTimeUTC,
       }];
       
-      morningRec = getNextRecommendedPost(account, creator, userSettings, 'morning', simulatedPosts);
+      morningRec = getNextRecommendedPost(account, creator, userSettings, 'morning', simulatedMorningPosts);
     }
     
     // Get ALL remaining posts for evening shift
-    let eveningRec = getNextRecommendedPost(account, creator, userSettings, 'evening', todayPosts);
-    while (eveningRec) {
+    let simulatedEveningPosts = [...todayPosts];
+    let eveningRec = getNextRecommendedPost(account, creator, userSettings, 'evening', simulatedEveningPosts);
+    let eveningCount = 0;
+    
+    while (eveningRec && eveningCount < maxPostsPerShift) {
       recommendations.push(eveningRec);
+      eveningCount++;
       
-      // Simulate the post being made to get the next one
-      const simulatedPosts = [...todayPosts, {
-        id: `sim-${eveningRec.postNumber}`,
+      // Add this post to simulated posts for next calculation
+      simulatedEveningPosts = [...simulatedEveningPosts, {
+        id: `sim-evening-${account.id}-${eveningCount}`,
         accountId: account.id,
         platform: account.platform,
         timestampUTC: eveningRec.recommendedTimeUTC,
         timestampCreatorTZ: '',
-        timestampUserTZ: '',
+        timestampUserTZ: format(new Date(eveningRec.recommendedTimeUTC), 'MMM d, h:mm a'),
         checklistState: { platform: account.platform, items: [], modified: false },
         notes: 'simulated',
         skipped: false,
         createdAt: eveningRec.recommendedTimeUTC,
       }];
       
-      eveningRec = getNextRecommendedPost(account, creator, userSettings, 'evening', simulatedPosts);
+      eveningRec = getNextRecommendedPost(account, creator, userSettings, 'evening', simulatedEveningPosts);
     }
   }
   
