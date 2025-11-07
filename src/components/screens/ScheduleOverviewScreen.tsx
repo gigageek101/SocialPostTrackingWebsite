@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { PostChecklistModal } from '../PostChecklistModal';
@@ -7,7 +7,7 @@ import { CheckCircle, ExternalLink, RefreshCw, SkipForward, Clock, Timer } from 
 import { useApp } from '../../context/AppContext';
 import { ChecklistState } from '../../types';
 import { format } from 'date-fns';
-import { PLATFORM_NAMES, PLATFORM_COLORS } from '../../constants/platforms';
+import { PLATFORM_NAMES, PLATFORM_COLORS, COOLDOWN_MINUTES } from '../../constants/platforms';
 import { getAllPostsForShift, RecommendedPost } from '../../utils/dynamicScheduler';
 import { formatCountdown } from '../../utils/timezone';
 
@@ -143,6 +143,53 @@ export function ScheduleOverviewScreen() {
     const isSkipped = rec.skipped;
     const isPending = !isCompleted && !isSkipped;
 
+    // Calculate live cooldown for pending posts
+    const [liveCooldown, setLiveCooldown] = React.useState<number | null>(null);
+    
+    React.useEffect(() => {
+      if (!isPending) return;
+      
+      const updateCooldown = () => {
+        // Find the most recent completed post for this account (not skipped)
+        const today = format(new Date(), 'yyyy-MM-dd');
+        const accountPostsToday = state.postLogs
+          .filter(p => {
+            const logDate = format(new Date(p.timestampUTC), 'yyyy-MM-dd');
+            return logDate === today && p.accountId === rec.accountId && !p.skipped;
+          })
+          .sort((a, b) => b.timestampUTC.localeCompare(a.timestampUTC));
+        
+        if (accountPostsToday.length === 0) {
+          setLiveCooldown(null);
+          return;
+        }
+        
+        const lastPost = accountPostsToday[0];
+        const cooldownMinutes = COOLDOWN_MINUTES[rec.platform];
+        
+        if (cooldownMinutes === 0) {
+          setLiveCooldown(null);
+          return;
+        }
+        
+        const lastPostTime = new Date(lastPost.timestampUTC).getTime();
+        const now = Date.now();
+        const elapsedMinutes = (now - lastPostTime) / 1000 / 60;
+        const remainingMinutes = cooldownMinutes - elapsedMinutes;
+        
+        if (remainingMinutes > 0) {
+          setLiveCooldown(Math.ceil(remainingMinutes));
+        } else {
+          setLiveCooldown(null);
+        }
+      };
+      
+      updateCooldown();
+      const interval = setInterval(updateCooldown, 1000); // Update every second
+      
+      return () => clearInterval(interval);
+    }, [isPending, rec.accountId, rec.platform, state.postLogs.length, currentTime]);
+
     return (
       <Card 
         key={`${rec.accountId}-${rec.shift}-${rec.postNumber}`}
@@ -151,6 +198,8 @@ export function ScheduleOverviewScreen() {
             ? 'bg-green-50 border-2 border-green-200' 
             : isSkipped
             ? 'bg-yellow-50 border-2 border-yellow-200'
+            : liveCooldown
+            ? 'bg-orange-50 border-2 border-orange-300 animate-pulse'
             : 'bg-white border-2 border-gray-200 hover:border-blue-300'
         }`}
       >
@@ -173,6 +222,24 @@ export function ScheduleOverviewScreen() {
               
               <p className="text-sm text-gray-600 mb-2">{creator.name} • @{account.handle}</p>
               
+              {/* Live Cooldown Display */}
+              {isPending && liveCooldown && liveCooldown > 0 && (
+                <div className="mb-3 p-3 bg-gradient-to-r from-orange-100 to-red-100 border-2 border-orange-400 rounded-lg animate-pulse">
+                  <div className="flex items-center gap-3">
+                    <Timer className="w-6 h-6 text-orange-600 animate-spin" style={{ animationDuration: '2s' }} />
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-orange-800 uppercase tracking-wide">⏳ Cooldown Active</p>
+                      <p className="text-2xl font-black text-orange-900 tabular-nums">
+                        {Math.floor(liveCooldown)} {Math.floor(liveCooldown) === 1 ? 'minute' : 'minutes'}
+                      </p>
+                      <p className="text-xs text-orange-700 mt-1">
+                        Wait for best results • Can post now if urgent
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <div className="space-y-1 text-sm">
                 <div className="flex items-center gap-2">
                   <span className="text-gray-600">US Time:</span>
@@ -183,16 +250,8 @@ export function ScheduleOverviewScreen() {
                   <span className="font-medium text-gray-900">{rec.recommendedTimeUserTZ}</span>
                 </div>
                 
-                {/* Cooldown indicator */}
-                {isPending && rec.isDuringCooldown && rec.cooldownEndsInMinutes && (
-                  <div className="flex items-center gap-2 text-orange-600">
-                    <Timer className="w-4 h-4" />
-                    <span className="font-medium">Cooldown: {formatCountdown(rec.cooldownEndsInMinutes)}</span>
-                  </div>
-                )}
-                
-                {/* Timing indicator */}
-                {isPending && !rec.isDuringCooldown && (
+                {/* Timing indicator (only show if NOT in cooldown) */}
+                {isPending && !liveCooldown && (
                   <div className="flex items-center gap-2">
                     {rec.isPerfectTime ? (
                       <span className="text-green-600 font-medium">🎯 Perfect Time!</span>
@@ -262,9 +321,9 @@ export function ScheduleOverviewScreen() {
                 <Button
                   size="sm"
                   onClick={() => handlePostNow(rec)}
-                  className="whitespace-nowrap"
+                  className={`whitespace-nowrap ${liveCooldown ? 'bg-orange-600 hover:bg-orange-700' : ''}`}
                 >
-                  ✓ I Just Posted
+                  {liveCooldown ? '⚠️ Post Anyway' : '✓ I Just Posted'}
                 </Button>
                 <Button
                   size="sm"
