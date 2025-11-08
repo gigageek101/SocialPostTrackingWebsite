@@ -127,7 +127,7 @@ export function ModernBarChart({ dailyStats }: ModernBarChartProps) {
                     )}
 
                     {/* Bar */}
-                    <div className="relative h-full flex items-end justify-center">
+                    <div className="relative h-80 flex items-end justify-center">
                       <div
                         className={`w-full bg-gradient-to-t ${barColor} rounded-t-lg transition-all duration-300 cursor-pointer relative overflow-hidden ${
                           isHovered ? 'scale-105' : ''
