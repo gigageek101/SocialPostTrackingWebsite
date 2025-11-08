@@ -153,7 +153,7 @@ export type Screen =
   | 'scheduled-posts'
   | 'content'
   | 'workflow'
-  | 'calendar'
+  | 'schedule-history'
   | 'creators'
   | 'creator-settings'
   | 'settings'

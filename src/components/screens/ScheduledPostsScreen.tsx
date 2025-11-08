@@ -4,11 +4,11 @@ import { Card } from '../ui/Card';
 import { PlatformIcon } from '../ui/PlatformIcon';
 import { PLATFORM_NAMES, PLATFORM_BASE_TIMES } from '../../constants/platforms';
 import { format } from 'date-fns';
-import { Clock, CheckCircle, ChevronDown, ChevronUp, Info, Copy, Check, ExternalLink, SkipForward } from 'lucide-react';
+import { Clock, CheckCircle, ChevronDown, ChevronUp, Info, Copy, Check, ExternalLink, SkipForward, History } from 'lucide-react';
 import { PostLogEntry } from '../../types';
 
 export function ScheduledPostsScreen() {
-  const { state } = useApp();
+  const { state, setCurrentScreen } = useApp();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -301,6 +301,15 @@ export function ScheduledPostsScreen() {
           <p className="text-sm text-gray-500 mt-2">
             Only showing posts you've actually made today • Click to expand for details
           </p>
+          
+          {/* Link to Schedule History */}
+          <button
+            onClick={() => setCurrentScreen('schedule-history')}
+            className="mt-4 inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
+          >
+            <History className="w-5 h-5" />
+            View All History
+          </button>
         </div>
 
         {/* Recommended Schedule Info */}

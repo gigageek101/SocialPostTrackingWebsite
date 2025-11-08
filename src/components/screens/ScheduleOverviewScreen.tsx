@@ -355,10 +355,10 @@ export function ScheduleOverviewScreen() {
           </Button>
           <Button
             variant="secondary"
-            onClick={() => setCurrentScreen('calendar')}
+            onClick={() => setCurrentScreen('schedule-history')}
             className="py-4"
           >
-            📅 View Calendar
+            📅 View History
           </Button>
         </div>
       </div>

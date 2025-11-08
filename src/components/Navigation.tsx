@@ -1,4 +1,4 @@
-import { Calendar, Home, Users, Settings, List, FileText, BookOpen, UserCog, Sun, Moon, TrendingUp } from 'lucide-react';
+import { History, Home, Users, Settings, List, FileText, BookOpen, UserCog, Sun, Moon, TrendingUp } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { Screen } from '../types';
@@ -9,10 +9,10 @@ export function Navigation() {
 
   const navItems: Array<{ screen: Screen; icon: React.ReactNode; label: string }> = [
     { screen: 'schedule-overview', icon: <Home className="w-6 h-6" />, label: 'Today' },
-    { screen: 'scheduled-posts', icon: <List className="w-6 h-6" />, label: 'Schedule' },
+    { screen: 'scheduled-posts', icon: <List className="w-6 h-6" />, label: 'Today History' },
     { screen: 'content', icon: <FileText className="w-6 h-6" />, label: 'Content' },
     { screen: 'workflow', icon: <BookOpen className="w-6 h-6" />, label: 'Workflow' },
-    { screen: 'calendar', icon: <Calendar className="w-6 h-6" />, label: 'Calendar' },
+    { screen: 'schedule-history', icon: <History className="w-6 h-6" />, label: 'History' },
     { screen: 'statistics', icon: <TrendingUp className="w-6 h-6" />, label: 'Stats' },
     { screen: 'creators', icon: <Users className="w-6 h-6" />, label: 'Creators' },
     { screen: 'creator-settings', icon: <UserCog className="w-6 h-6" />, label: 'Creator' },

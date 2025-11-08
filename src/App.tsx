@@ -8,7 +8,7 @@ import { ScheduleOverviewScreen } from './components/screens/ScheduleOverviewScr
 import { ScheduledPostsScreen } from './components/screens/ScheduledPostsScreen';
 import { ContentScreen } from './components/screens/ContentScreen';
 import { WorkflowScreen } from './components/screens/WorkflowScreen';
-import { CalendarScreen } from './components/screens/CalendarScreen';
+import { ScheduleHistoryScreen } from './components/screens/ScheduleHistoryScreen';
 import { StatisticsScreen } from './components/screens/StatisticsScreen';
 import { CreatorsScreen } from './components/screens/CreatorsScreen';
 import { CreatorSettingsScreen } from './components/screens/CreatorSettingsScreen';
@@ -111,7 +111,7 @@ function AppContent() {
         {currentScreen === 'scheduled-posts' && <ScheduledPostsScreen />}
         {currentScreen === 'content' && <ContentScreen />}
         {currentScreen === 'workflow' && <WorkflowScreen />}
-        {currentScreen === 'calendar' && <CalendarScreen />}
+        {currentScreen === 'schedule-history' && <ScheduleHistoryScreen />}
         {currentScreen === 'statistics' && <StatisticsScreen />}
         {currentScreen === 'creators' && <CreatorsScreen />}
         {currentScreen === 'creator-settings' && <CreatorSettingsScreen />}
