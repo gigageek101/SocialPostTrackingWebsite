@@ -353,11 +353,11 @@ export function ScheduledPostsScreen() {
                 <div className="bg-white rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <PlatformIcon platform="instagram" className="w-5 h-5" />
-                    <h4 className="font-bold text-gray-900">Instagram (2 posts/day)</h4>
+                    <h4 className="font-bold text-gray-900">Instagram (4 posts/day)</h4>
                   </div>
                   <div className="text-sm text-gray-700 space-y-1">
-                    <p><strong>Morning:</strong> {PLATFORM_BASE_TIMES.instagram.morning} (US Central)</p>
-                    <p><strong>Evening:</strong> {PLATFORM_BASE_TIMES.instagram.evening} (US Central)</p>
+                    <p><strong>Morning:</strong> {PLATFORM_BASE_TIMES.instagram.slice(0, 2).join(', ')} (US Central)</p>
+                    <p><strong>Evening:</strong> {PLATFORM_BASE_TIMES.instagram.slice(2).join(', ')} (US Central)</p>
                     <p className="text-xs text-gray-500">No cooldown</p>
                   </div>
                 </div>

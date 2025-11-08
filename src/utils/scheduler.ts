@@ -72,20 +72,15 @@ export function generateDailyPlan(
         });
       });
     } else if (platform === 'instagram') {
-      // Morning and evening in creator timezone
-      scheduleEntries.push({
-        accountId: account.id,
-        platform,
-        baseTime: PLATFORM_BASE_TIMES.instagram.morning,
-        timezone: creator.timezone,
-        accountIndex,
-      });
-      scheduleEntries.push({
-        accountId: account.id,
-        platform,
-        baseTime: PLATFORM_BASE_TIMES.instagram.evening,
-        timezone: creator.timezone,
-        accountIndex,
+      // Instagram now has 4 posts: 2 morning + 2 evening
+      PLATFORM_BASE_TIMES.instagram.forEach((baseTime) => {
+        scheduleEntries.push({
+          accountId: account.id,
+          platform,
+          baseTime,
+          timezone: creator.timezone,
+          accountIndex,
+        });
       });
     } else if (platform === 'facebook') {
       // Morning and evening in creator timezone (flexible)

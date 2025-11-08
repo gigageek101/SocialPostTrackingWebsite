@@ -14,7 +14,7 @@ export function WorkflowScreen() {
   // Calculate totals
   const totalTikToks = tiktokCount * 6; // 6 per account per day
   const totalThreads = threadsCount * 6; // 6 per account per day
-  const totalInstagram = instagramCount * 2; // 2 per account per day
+  const totalInstagram = instagramCount * 4; // 4 per account per day
   const totalFacebook = facebookCount * 2; // 2 per account per day
 
   // Get user's timezone display
@@ -151,7 +151,7 @@ export function WorkflowScreen() {
                       <span className="font-semibold text-gray-900">Instagram Content</span>
                     </div>
                     <p className="text-sm text-gray-700">
-                      <strong>{instagramCount}</strong> account{instagramCount > 1 ? 's' : ''} × 2 posts/day = 
+                      <strong>{instagramCount}</strong> account{instagramCount > 1 ? 's' : ''} × 4 posts/day = 
                       <strong className="text-orange-600 ml-1">{totalInstagram} Instagram posts total</strong>
                     </p>
                   </div>

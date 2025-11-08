@@ -551,9 +551,10 @@ function getBaseTimeForShift(
     bangkokTime.setUTCHours(hours - 7, minutes, 0, 0);
     return bangkokTime.toISOString();
   } else if (platform === 'instagram') {
+    // Instagram now has 4 posts: [09:00, 10:30, 18:00, 19:30]
     timeString = shift === 'morning'
-      ? PLATFORM_BASE_TIMES.instagram.morning // 06:00
-      : PLATFORM_BASE_TIMES.instagram.evening; // 16:00
+      ? PLATFORM_BASE_TIMES.instagram[0] // 09:00 (first morning post)
+      : PLATFORM_BASE_TIMES.instagram[2]; // 18:00 (first evening post)
     // Use creator timezone
     const [hours, minutes] = timeString.split(':').map(Number);
     const creatorTime = new Date(now);
@@ -602,8 +603,10 @@ export function getTodayPostsForAccount(
 export function getMaxPostsForPlatformShift(platform: Platform, _shift: 'morning' | 'evening'): number {
   if (platform === 'tiktok' || platform === 'threads') {
     return 3; // 3 posts per shift
-  } else if (platform === 'instagram' || platform === 'facebook') {
-    return 1; // 1 post per shift (FB can be 2)
+  } else if (platform === 'instagram') {
+    return 2; // 2 posts per shift (4 total per day)
+  } else if (platform === 'facebook') {
+    return 1; // 1 post per shift (2 total per day)
   }
   return 1;
 }

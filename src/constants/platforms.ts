@@ -8,10 +8,7 @@ export const US_TIMEZONE = 'America/Chicago'; // All creators use US time
 export const PLATFORM_BASE_TIMES = {
   tiktok: ['05:00', '07:00', '09:00', '16:00', '18:00', '20:00'],
   threads: ['05:10', '07:10', '09:10', '16:10', '18:10', '20:10'],
-  instagram: {
-    morning: '09:00', // In creator TZ (US time)
-    evening: '18:00', // In creator TZ (US time)
-  },
+  instagram: ['09:00', '10:30', '18:00', '19:30'], // 4 posts: 2 morning, 2 evening (US time)
   facebook: {
     morning: '10:00', // Flexible, in creator TZ
     evening: '19:00', // Flexible, in creator TZ
