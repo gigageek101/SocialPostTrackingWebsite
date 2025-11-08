@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
-import { AlertTriangle, Award, Timer, Play, Pause, Send } from 'lucide-react';
+import { AlertTriangle, Award, Timer, Play, Pause } from 'lucide-react';
 import { Platform, ChecklistItem, ChecklistState, PostLogEntry } from '../types';
 import { CHECKLIST_TEMPLATES } from '../constants/platforms';
 
@@ -49,8 +49,17 @@ export function PostChecklistModal({
     completed: true, // Auto-checked
   };
   
+  // Add Telegram reminder item
+  const telegramReminderItem: ChecklistItem = {
+    id: 'telegram-reaction',
+    label: '📱 React to the Telegram message you just posted',
+    type: 'toggle',
+    completed: false,
+  };
+  
   const [items, setItems] = useState<ChecklistItem[]>([
     completionItem,
+    telegramReminderItem,
     ...templateItems.map((item) => ({ ...item, completed: false }))
   ]);
   const [notes, setNotes] = useState('');
@@ -160,20 +169,6 @@ export function PostChecklistModal({
             <h3 className="font-semibold text-green-900 text-lg">✓ Post Logged & Cooldown Started!</h3>
             <p className="text-sm text-green-700">
               Complete these interactions while your cooldown timer runs in the background
-            </p>
-          </div>
-        </div>
-
-        {/* Telegram Reminder Box */}
-        <div className="flex items-start gap-3 p-4 bg-blue-50 border-2 border-blue-400 rounded-lg shadow-lg animate-pulse-subtle">
-          <Send className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
-          <div className="flex-1">
-            <h3 className="font-bold text-blue-900 text-lg mb-2">📱 Don't Forget Telegram!</h3>
-            <p className="text-sm text-blue-800 font-semibold">
-              React to the Telegram message you just posted to confirm it's saved properly! 👍
-            </p>
-            <p className="text-xs text-blue-700 mt-1">
-              This helps track your posts and keeps everything organized
             </p>
           </div>
         </div>
