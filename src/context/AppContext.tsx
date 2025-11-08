@@ -13,7 +13,7 @@ import {
 } from '../types';
 import { loadFromStorage, saveToStorage, exportData } from '../utils/storage';
 import { generateId, getBrowserTimezone } from '../utils/helpers';
-import { CHECKLIST_TEMPLATES, DEFAULT_CREATOR_TIMEZONE, COOLDOWN_MINUTES } from '../constants/platforms';
+import { CHECKLIST_TEMPLATES, DEFAULT_CREATOR_TIMEZONE, COOLDOWN_MINUTES, PLATFORM_NAMES } from '../constants/platforms';
 import { generateDailyPlan, getTodayKey } from '../utils/scheduler';
 import { getCurrentUTC, formatInTimezone } from '../utils/timezone';
 import { sendTelegramNotification, formatPostCompletedNotification } from '../services/telegramService';
@@ -191,6 +191,69 @@ export function AppProvider({ children }: { children: ReactNode }) {
     
     return () => clearInterval(interval);
   }, [state.userSettings, state.accounts.length]);
+
+  // Check for cooldown completions and send Telegram notifications
+  useEffect(() => {
+    if (!state.userSettings?.notificationsEnabled) return;
+    
+    const checkCooldowns = () => {
+      const now = Date.now();
+      const today = format(new Date(), 'yyyy-MM-dd');
+      
+      // Get today's posts that aren't skipped
+      const todayPosts = state.postLogs.filter(log => {
+        const logDate = format(new Date(log.timestampUTC), 'yyyy-MM-dd');
+        return logDate === today && !log.skipped;
+      });
+      
+      // Check each post for cooldown completion
+      todayPosts.forEach(post => {
+        const account = state.accounts.find(a => a.id === post.accountId);
+        if (!account) return;
+        
+        const creator = state.creators.find(c => c.id === account.creatorId);
+        if (!creator?.telegramBotToken || !creator?.telegramChatId) return;
+        
+        const cooldownMinutes = COOLDOWN_MINUTES[account.platform];
+        if (cooldownMinutes === 0) return; // No cooldown for this platform
+        
+        const postTime = new Date(post.timestampUTC).getTime();
+        const cooldownEndTime = postTime + (cooldownMinutes * 60 * 1000);
+        const timeUntilCooldownEnd = cooldownEndTime - now;
+        
+        // If cooldown just ended (within last minute)
+        if (timeUntilCooldownEnd > -60000 && timeUntilCooldownEnd <= 0) {
+          const postId = `${account.id}-${post.timestampUTC}`;
+          const notificationKey = `cooldown-complete-${postId}`;
+          
+          // Check if we already sent this notification
+          const alreadySent = localStorage.getItem(notificationKey);
+          if (alreadySent) return;
+          
+          // Send notification
+          sendTelegramNotification(
+            creator.telegramBotToken,
+            creator.telegramChatId,
+            {
+              text: `✅ <b>Cooldown Complete!</b>\n\n📱 ${PLATFORM_NAMES[account.platform]} Account: <b>@${account.handle}</b>\n\nYou can now post your next ${PLATFORM_NAMES[account.platform]} post!\n\n🎯 Ready to post!`,
+              parseMode: 'HTML',
+            }
+          ).then(() => {
+            localStorage.setItem(notificationKey, 'sent');
+            console.log('✅ Cooldown complete notification sent');
+          }).catch(err => {
+            console.error('Failed to send cooldown notification:', err);
+          });
+        }
+      });
+    };
+    
+    // Check every 10 seconds
+    const interval = setInterval(checkCooldowns, 10000);
+    checkCooldowns(); // Initial check
+    
+    return () => clearInterval(interval);
+  }, [state.postLogs, state.accounts, state.creators, state.userSettings]);
 
   const updateUserSettings = (updates: Partial<UserSettings>) => {
     setState((prev) => {
