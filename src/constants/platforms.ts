@@ -6,9 +6,9 @@ export const DEFAULT_CREATOR_TIMEZONE = 'America/Chicago'; // US Central Time
 export const US_TIMEZONE = 'America/Chicago'; // All creators use US time
 
 export const PLATFORM_BASE_TIMES = {
-  tiktok: ['05:00', '07:00', '09:00', '16:00', '18:00', '20:00'],
-  threads: ['05:10', '07:10', '09:10', '16:10', '18:10', '20:10'],
-  instagram: ['09:00', '10:30', '18:00', '19:30'], // 4 posts: 2 morning, 2 evening (US time)
+  tiktok: ['05:00', '07:00', '09:00', '16:00', '18:00', '19:30'], // Evening: 4pm, 6pm, 7:30pm
+  threads: ['05:10', '07:10', '09:10', '16:10', '18:10', '19:40'], // Evening: 4:10pm, 6:10pm, 7:40pm
+  instagram: ['06:00', '08:00', '18:00', '19:30'], // Morning: 6am, 8am | Evening: 6pm, 7:30pm (US time)
   facebook: {
     morning: '10:00', // Flexible, in creator TZ
     evening: '19:00', // Flexible, in creator TZ
