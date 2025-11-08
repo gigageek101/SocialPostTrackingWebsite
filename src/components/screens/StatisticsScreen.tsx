@@ -44,14 +44,31 @@ export function StatisticsScreen() {
     const days: DayStats[] = [];
     const today = new Date();
     
+    // Debug: Log all post dates
+    console.log('📊 All post logs:', state.postLogs.map(log => ({
+      platform: log.checklistState.platform,
+      timestampUTC: log.timestampUTC,
+      date: format(new Date(log.timestampUTC), 'yyyy-MM-dd'),
+      skipped: log.skipped,
+    })));
+    
     for (let i = 29; i >= 0; i--) {
       const date = subDays(today, i);
+      // Set to start of day in local timezone
+      date.setHours(0, 0, 0, 0);
       const dateString = format(date, 'yyyy-MM-dd');
       
       const dayPosts = state.postLogs.filter(log => {
-        const logDate = format(new Date(log.timestampUTC), 'yyyy-MM-dd');
-        return logDate === dateString && !log.skipped;
+        if (log.skipped) return false;
+        
+        // Use local date comparison (user's timezone)
+        const logDate = new Date(log.timestampUTC);
+        const logDateString = format(logDate, 'yyyy-MM-dd');
+        
+        return logDateString === dateString;
       });
+      
+      console.log(`📅 ${dateString}: ${dayPosts.length} posts`);
       
       const postsByPlatform: Record<string, number> = {};
       dayPosts.forEach(post => {
@@ -67,6 +84,8 @@ export function StatisticsScreen() {
         hasPosted: dayPosts.length > 0,
       });
     }
+    
+    console.log('📊 Total days with posts:', days.filter(d => d.totalPosts > 0).length);
     
     return days;
   };
