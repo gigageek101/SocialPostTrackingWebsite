@@ -74,25 +74,16 @@ export function ModernBarChart({ dailyStats }: ModernBarChartProps) {
             {/* Bars Container */}
             <div className="relative h-80 flex items-end justify-between gap-[2px]">
               {dailyStats.map((day, index) => {
+                // Calculate height as percentage - NO minimum, let it be accurate
                 const heightPercent = day.totalPosts === 0 
                   ? 0 
-                  : Math.max((day.totalPosts / yAxisMax) * 100, 5); // Increased minimum to 5%
+                  : (day.totalPosts / yAxisMax) * 100;
                 const isHovered = hoveredIndex === index;
                 const barColor = getBarColor(day.totalPosts);
                 const glowColor = getGlowColor(day.totalPosts);
                 
                 // Check if this is today
                 const isToday = format(day.date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
-                
-                // Debug log for bars with posts
-                if (day.totalPosts > 0) {
-                  console.log(`🎨 Rendering bar ${index}:`, {
-                    date: day.dateString,
-                    posts: day.totalPosts,
-                    height: `${heightPercent}%`,
-                    color: barColor,
-                  });
-                }
 
                 return (
                   <div
@@ -143,7 +134,6 @@ export function ModernBarChart({ dailyStats }: ModernBarChartProps) {
                         } ${isHovered && day.totalPosts > 0 ? glowColor : ''}`}
                         style={{ 
                           height: `${heightPercent}%`,
-                          minHeight: day.totalPosts > 0 ? '8px' : '0px', // Ensure minimum visible height
                         }}
                       >
                         {/* Shine effect */}
