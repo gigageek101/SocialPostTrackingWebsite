@@ -221,8 +221,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const cooldownEndTime = postTime + (cooldownMinutes * 60 * 1000);
         const timeUntilCooldownEnd = cooldownEndTime - now;
         
-        // If cooldown just ended (within last minute)
-        if (timeUntilCooldownEnd > -60000 && timeUntilCooldownEnd <= 0) {
+        // If cooldown has ended (anytime in the past, even hours ago)
+        // We'll send the notification once as soon as we detect it's complete
+        if (timeUntilCooldownEnd <= 0) {
           const postId = `${account.id}-${post.timestampUTC}`;
           const notificationKey = `cooldown-complete-${postId}`;
           
@@ -230,17 +231,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const alreadySent = localStorage.getItem(notificationKey);
           if (alreadySent) return;
           
+          // Calculate how long ago the cooldown ended
+          const minutesSinceCooldownEnd = Math.abs(Math.floor(timeUntilCooldownEnd / 60000));
+          const hoursAgo = Math.floor(minutesSinceCooldownEnd / 60);
+          const minutesAgo = minutesSinceCooldownEnd % 60;
+          
+          let timeAgoText = '';
+          if (hoursAgo > 0) {
+            timeAgoText = hoursAgo === 1 
+              ? `\n⏰ Cooldown ended ${hoursAgo} hour ago`
+              : `\n⏰ Cooldown ended ${hoursAgo} hours ago`;
+          } else if (minutesAgo > 0) {
+            timeAgoText = `\n⏰ Cooldown ended ${minutesAgo} minutes ago`;
+          } else {
+            timeAgoText = `\n⏰ Cooldown just ended!`;
+          }
+          
           // Send notification
           sendTelegramNotification(
             creator.telegramBotToken,
             creator.telegramChatId,
             {
-              text: `✅ <b>Cooldown Complete!</b>\n\n📱 ${PLATFORM_NAMES[account.platform]} Account: <b>@${account.handle}</b>\n\nYou can now post your next ${PLATFORM_NAMES[account.platform]} post!\n\n🎯 Ready to post!`,
+              text: `✅ <b>Cooldown Complete!</b>\n\n📱 ${PLATFORM_NAMES[account.platform]} Account: <b>@${account.handle}</b>${timeAgoText}\n\nYou can now post your next ${PLATFORM_NAMES[account.platform]} post!\n\n🎯 Ready to post!`,
               parseMode: 'HTML',
             }
           ).then(() => {
             localStorage.setItem(notificationKey, 'sent');
-            console.log('✅ Cooldown complete notification sent');
+            console.log('✅ Cooldown complete notification sent for', account.platform, account.handle);
           }).catch(err => {
             console.error('Failed to send cooldown notification:', err);
           });
