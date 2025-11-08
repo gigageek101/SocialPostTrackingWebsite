@@ -80,6 +80,9 @@ export function ModernBarChart({ dailyStats }: ModernBarChartProps) {
                 const isHovered = hoveredIndex === index;
                 const barColor = getBarColor(day.totalPosts);
                 const glowColor = getGlowColor(day.totalPosts);
+                
+                // Check if this is today
+                const isToday = format(day.date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
 
                 return (
                   <div
@@ -154,9 +157,11 @@ export function ModernBarChart({ dailyStats }: ModernBarChartProps) {
                     </div>
 
                     {/* Date label */}
-                    {(index % 5 === 0 || day.date.getDate() === 1) && (
-                      <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 text-[10px] text-slate-500 whitespace-nowrap font-medium">
-                        {format(day.date, 'MMM d')}
+                    {(index % 5 === 0 || day.date.getDate() === 1 || index >= dailyStats.length - 3 || isToday) && (
+                      <div className={`absolute top-full mt-2 left-1/2 -translate-x-1/2 text-[10px] whitespace-nowrap font-medium ${
+                        isToday ? 'text-blue-400 font-bold text-xs' : 'text-slate-500'
+                      }`}>
+                        {isToday ? '📍 TODAY' : format(day.date, 'MMM d')}
                       </div>
                     )}
                   </div>
