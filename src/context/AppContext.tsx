@@ -57,6 +57,7 @@ interface AppContextType {
   
   // Posts
   logPost: (slotId: string | undefined, checklistState: ChecklistState, notes: string, accountId?: string, platform?: Platform, postNumber?: number, customTimestamp?: Date, postLink?: string) => void;
+  updatePost: (accountId: string, postNumber: number, checklistState: ChecklistState, notes: string) => void;
   skipPost: (accountId: string, platform: Platform, postNumber?: number, onComplete?: () => void) => void;
   logUnscheduledPost: (accountId: string, platform: string, checklistState: ChecklistState, notes: string) => void;
   
@@ -733,6 +734,57 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updatePost = (accountId: string, postNumber: number, checklistState: ChecklistState, notes: string) => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    
+    setState((prev) => {
+      const updatedLogs = prev.postLogs.map(log => {
+        const logDate = format(new Date(log.timestampUTC), 'yyyy-MM-dd');
+        
+        if (logDate === today &&
+            log.accountId === accountId &&
+            log.postNumber === postNumber &&
+            !log.skipped) {
+          return {
+            ...log,
+            checklistState,
+            notes,
+          };
+        }
+        return log;
+      });
+      
+      return {
+        ...prev,
+        postLogs: updatedLogs,
+      };
+    });
+    
+    // Sync to Supabase
+    if (state.authState.isAuthenticated) {
+      setTimeout(async () => {
+        const currentState = state;
+        const updatedPost = currentState.postLogs.find(log => {
+          const logDate = format(new Date(log.timestampUTC), 'yyyy-MM-dd');
+          return logDate === today &&
+                 log.accountId === accountId &&
+                 log.postNumber === postNumber &&
+                 !log.skipped;
+        });
+        
+        if (updatedPost) {
+          console.log('⬆️ Syncing updated post to Supabase');
+          const result = await syncPostLog(updatedPost);
+          if (result.error) {
+            console.error('❌ Failed to sync updated post:', result.error);
+          } else {
+            console.log('✅ Updated post synced to cloud');
+          }
+        }
+      }, 100);
+    }
+  };
+
   const logUnscheduledPost = (
     accountId: string,
     platform: string,
@@ -1059,6 +1111,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateAccount,
         deleteAccount,
         logPost,
+        updatePost,
         skipPost,
         logUnscheduledPost,
         getTodayPlan,

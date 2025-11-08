@@ -13,7 +13,7 @@ import { PLATFORM_NAMES } from '../../constants/platforms';
 import { getAllPostsForShift, RecommendedPost } from '../../utils/dynamicScheduler';
 
 export function ScheduleOverviewScreen() {
-  const { state, logPost, skipPost, setCurrentScreen, manualSync } = useApp();
+  const { state, logPost, updatePost, skipPost, setCurrentScreen, manualSync } = useApp();
   const [selectedRecommendation, setSelectedRecommendation] = useState<RecommendedPost | null>(null);
   const [showChecklist, setShowChecklist] = useState(false);
   const [showBackdateModal, setShowBackdateModal] = useState(false);
@@ -88,8 +88,32 @@ export function ScheduleOverviewScreen() {
   const otherShiftPosts = currentShift === 'morning' ? eveningPosts : morningPosts;
 
   const handlePostNow = (recommendation: RecommendedPost) => {
-    setSelectedRecommendation(recommendation);
-    setShowChecklist(true);
+    const account = state.accounts.find(a => a.id === recommendation.accountId);
+    
+    if (account) {
+      // Log post immediately to start cooldown
+      const quickChecklistState: ChecklistState = {
+        platform: account.platform,
+        items: [],
+        modified: false,
+      };
+      
+      logPost(
+        undefined,
+        quickChecklistState,
+        'Post in progress...',
+        account.id,
+        account.platform,
+        recommendation.postNumber
+      );
+      
+      // Force refresh to show cooldown
+      setTimeout(() => setCurrentTime(new Date()), 100);
+      
+      // Then open checklist modal
+      setSelectedRecommendation(recommendation);
+      setShowChecklist(true);
+    }
   };
 
   const handlePostEarlier = (recommendation: RecommendedPost) => {
@@ -135,16 +159,16 @@ export function ScheduleOverviewScreen() {
       const account = state.accounts.find(a => a.id === selectedRecommendation.accountId);
       
       if (account) {
+        // Update the existing post with checklist data
+        updatePost(
+          account.id,
+          selectedRecommendation.postNumber,
+          checklistState,
+          notes
+        );
+        
         setShowChecklist(false);
         setSelectedRecommendation(null);
-        logPost(
-          undefined, 
-          checklistState, 
-          notes, 
-          account.id, 
-          account.platform,
-          selectedRecommendation.postNumber
-        );
         
         // Force refresh
         setTimeout(() => setCurrentTime(new Date()), 100);

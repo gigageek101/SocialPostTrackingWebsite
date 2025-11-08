@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { TrendingUp, Calendar, Award, Flame, Target, Zap, Trophy, Star } from 'lucide-react';
+import { ModernBarChart } from '../ModernBarChart';
 import { useApp } from '../../context/AppContext';
 import { format, subDays, isSameDay, differenceInDays } from 'date-fns';
 import { PLATFORM_NAMES } from '../../constants/platforms';
@@ -339,133 +340,9 @@ export function StatisticsScreen() {
         </Card>
 
         {/* Daily Posts Bar Chart */}
-        <Card className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <TrendingUp className="w-7 h-7 text-green-600" />
-            Daily Post Volume (Last 30 Days)
-          </h2>
-          <div className="relative">
-            {/* Y-axis labels */}
-            <div className="flex gap-4 mb-2">
-              <div className="w-8 text-right text-sm text-gray-500 flex flex-col justify-between h-64">
-                {[...Array(6)].map((_, i) => {
-                  const maxPosts = Math.max(...dailyStats.map(d => d.totalPosts), 10);
-                  const value = Math.ceil(maxPosts * (5 - i) / 5);
-                  return (
-                    <div key={i} className="leading-none">
-                      {value}
-                    </div>
-                  );
-                })}
-                <div className="leading-none">0</div>
-              </div>
-              
-              {/* Chart area */}
-              <div className="flex-1 relative">
-                {/* Grid lines */}
-                <div className="absolute inset-0 flex flex-col justify-between">
-                  {[...Array(6)].map((_, i) => (
-                    <div key={i} className="border-t border-gray-200" />
-                  ))}
-                </div>
-                
-                {/* Bars */}
-                <div className="relative h-64 flex items-end justify-between gap-1">
-                  {dailyStats.map((day) => {
-                    const maxPosts = Math.max(...dailyStats.map(d => d.totalPosts), 10);
-                    const heightPercent = day.totalPosts === 0 ? 0 : (day.totalPosts / maxPosts) * 100;
-                    
-                    return (
-                      <div
-                        key={day.dateString}
-                        className="flex-1 group relative flex flex-col items-center justify-end cursor-pointer"
-                        style={{ minWidth: '10px' }}
-                      >
-                        {/* Tooltip */}
-                        <div className="absolute bottom-full mb-2 hidden group-hover:block z-10">
-                          <div className="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 whitespace-nowrap shadow-xl">
-                            <div className="font-bold">{format(day.date, 'MMM d, yyyy')}</div>
-                            <div className="text-gray-300">{day.totalPosts} {day.totalPosts === 1 ? 'post' : 'posts'}</div>
-                            {Object.entries(day.postsByPlatform).length > 0 && (
-                              <div className="mt-1 pt-1 border-t border-gray-700">
-                                {Object.entries(day.postsByPlatform).map(([platform, count]) => (
-                                  <div key={platform} className="text-gray-400 text-xs">
-                                    {PLATFORM_NAMES[platform as keyof typeof PLATFORM_NAMES]}: {count}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                          <div className="w-2 h-2 bg-gray-900 transform rotate-45 mx-auto -mt-1" />
-                        </div>
-                        
-                        {/* Bar */}
-                        <div
-                          className={`w-full rounded-t-lg transition-all duration-300 group-hover:opacity-80 ${
-                            day.totalPosts === 0
-                              ? 'bg-gray-200'
-                              : day.totalPosts >= 10
-                              ? 'bg-gradient-to-t from-purple-600 to-pink-500'
-                              : day.totalPosts >= 7
-                              ? 'bg-gradient-to-t from-green-600 to-emerald-500'
-                              : day.totalPosts >= 4
-                              ? 'bg-gradient-to-t from-blue-600 to-cyan-500'
-                              : 'bg-gradient-to-t from-yellow-500 to-orange-500'
-                          }`}
-                          style={{ 
-                            height: `${Math.max(heightPercent, day.totalPosts > 0 ? 3 : 1)}%`,
-                            boxShadow: day.totalPosts > 0 ? '0 -2px 8px rgba(0,0,0,0.1)' : 'none'
-                          }}
-                        />
-                        
-                        {/* Date label (show every 5 days on mobile, every 3 on desktop) */}
-                        {(day.date.getDate() % 5 === 0 || day.date.getDate() === 1) && (
-                          <div className="absolute -bottom-6 text-xs text-gray-500 transform -rotate-45 origin-top-left whitespace-nowrap hidden sm:block">
-                            {format(day.date, 'MMM d')}
-                          </div>
-                        )}
-                        {(day.date.getDate() % 10 === 0 || day.date.getDate() === 1) && (
-                          <div className="absolute -bottom-6 text-xs text-gray-500 transform -rotate-45 origin-top-left whitespace-nowrap sm:hidden">
-                            {format(day.date, 'M/d')}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-            
-            {/* X-axis label */}
-            <div className="ml-12 mt-8 text-center">
-              <span className="text-sm font-semibold text-gray-600">Date</span>
-            </div>
-          </div>
-          
-          {/* Legend */}
-          <div className="mt-8 flex items-center justify-center gap-4 text-sm text-gray-600 flex-wrap">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-gray-200 rounded"></div>
-              <span>No posts</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-gradient-to-t from-yellow-500 to-orange-500 rounded"></div>
-              <span>1-3</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-gradient-to-t from-blue-600 to-cyan-500 rounded"></div>
-              <span>4-6</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-gradient-to-t from-green-600 to-emerald-500 rounded"></div>
-              <span>7-9</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-gradient-to-t from-purple-600 to-pink-500 rounded"></div>
-              <span>10+</span>
-            </div>
-          </div>
-        </Card>
+        <div className="mb-6">
+          <ModernBarChart dailyStats={dailyStats} />
+        </div>
 
         {/* Last 30 Days Calendar View */}
         <Card className="mb-6">
