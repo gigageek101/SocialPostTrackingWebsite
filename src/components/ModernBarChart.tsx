@@ -20,15 +20,6 @@ export function ModernBarChart({ dailyStats }: ModernBarChartProps) {
   const maxPosts = Math.max(...dailyStats.map(d => d.totalPosts), 1);
   const yAxisMax = Math.ceil(maxPosts * 1.2); // Add 20% headroom
 
-  // Debug logging
-  console.log('📊 ModernBarChart received:', {
-    totalDays: dailyStats.length,
-    daysWithPosts: dailyStats.filter(d => d.totalPosts > 0).length,
-    maxPosts,
-    yAxisMax,
-    sampleDays: dailyStats.filter(d => d.totalPosts > 0).slice(0, 3),
-  });
-
   const getBarColor = (count: number) => {
     if (count === 0) return 'from-gray-200 to-gray-300';
     if (count >= 10) return 'from-purple-500 via-pink-500 to-rose-500';
@@ -89,16 +80,6 @@ export function ModernBarChart({ dailyStats }: ModernBarChartProps) {
                 const isHovered = hoveredIndex === index;
                 const barColor = getBarColor(day.totalPosts);
                 const glowColor = getGlowColor(day.totalPosts);
-
-                // Debug log for days with posts
-                if (day.totalPosts > 0) {
-                  console.log(`📊 Bar for ${day.dateString}:`, {
-                    totalPosts: day.totalPosts,
-                    heightPercent: `${heightPercent}%`,
-                    yAxisMax,
-                    barColor,
-                  });
-                }
 
                 return (
                   <div

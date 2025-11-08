@@ -38,19 +38,17 @@ export function StatisticsScreen() {
   const { state, setCurrentScreen } = useApp();
   const [showMilestone, setShowMilestone] = useState(false);
   const [currentMilestone, setCurrentMilestone] = useState<Milestone | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Force re-calculate when data changes
+  useEffect(() => {
+    setRefreshKey(prev => prev + 1);
+  }, [state.postLogs.length]);
 
   // Calculate daily stats for the last 30 days
   const calculateDailyStats = (): DayStats[] => {
     const days: DayStats[] = [];
     const today = new Date();
-    
-    // Debug: Log all post dates
-    console.log('📊 All post logs:', state.postLogs.map(log => ({
-      platform: log.checklistState.platform,
-      timestampUTC: log.timestampUTC,
-      date: format(new Date(log.timestampUTC), 'yyyy-MM-dd'),
-      skipped: log.skipped,
-    })));
     
     for (let i = 29; i >= 0; i--) {
       const date = subDays(today, i);
@@ -68,8 +66,6 @@ export function StatisticsScreen() {
         return logDateString === dateString;
       });
       
-      console.log(`📅 ${dateString}: ${dayPosts.length} posts`);
-      
       const postsByPlatform: Record<string, number> = {};
       dayPosts.forEach(post => {
         const platform = post.checklistState.platform;
@@ -84,8 +80,6 @@ export function StatisticsScreen() {
         hasPosted: dayPosts.length > 0,
       });
     }
-    
-    console.log('📊 Total days with posts:', days.filter(d => d.totalPosts > 0).length);
     
     return days;
   };
@@ -359,7 +353,7 @@ export function StatisticsScreen() {
         </Card>
 
         {/* Daily Posts Bar Chart */}
-        <div className="mb-6">
+        <div className="mb-6" key={`chart-${refreshKey}`}>
           <ModernBarChart dailyStats={dailyStats} />
         </div>
 
