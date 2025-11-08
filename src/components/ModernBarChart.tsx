@@ -37,20 +37,20 @@ export function ModernBarChart({ dailyStats }: ModernBarChartProps) {
   };
 
   return (
-    <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl p-6 shadow-2xl">
+    <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-200">
       {/* Title */}
       <div className="mb-6">
-        <h3 className="text-2xl font-black text-white mb-1 flex items-center gap-2">
+        <h3 className="text-2xl font-black text-gray-900 mb-1 flex items-center gap-2">
           📊 Daily Performance
         </h3>
-        <p className="text-slate-400 text-sm">Last 30 days posting activity</p>
+        <p className="text-gray-600 text-sm">Last 30 days posting activity</p>
       </div>
 
       {/* Chart Container */}
       <div className="relative">
         {/* Y-axis */}
         <div className="flex gap-4">
-          <div className="flex flex-col justify-between h-80 text-xs text-slate-500 pr-2 border-r border-slate-700">
+          <div className="flex flex-col justify-between h-80 text-xs text-gray-600 pr-2 border-r border-gray-300">
             {[...Array(6)].map((_, i) => {
               const value = Math.round(yAxisMax * (5 - i) / 5);
               return (
@@ -67,7 +67,7 @@ export function ModernBarChart({ dailyStats }: ModernBarChartProps) {
             {/* Grid Lines */}
             <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="border-t border-slate-700/50" />
+                <div key={i} className="border-t border-gray-200" />
               ))}
             </div>
 
@@ -105,23 +105,23 @@ export function ModernBarChart({ dailyStats }: ModernBarChartProps) {
                     {/* Tooltip */}
                     {isHovered && (
                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                        <div className="bg-slate-950 border border-slate-700 text-white text-xs rounded-xl py-3 px-4 shadow-2xl min-w-[180px]">
-                          <div className="font-bold text-sm mb-2 text-center border-b border-slate-700 pb-2">
+                        <div className="bg-gray-900 border border-gray-700 text-white text-xs rounded-xl py-3 px-4 shadow-2xl min-w-[180px]">
+                          <div className="font-bold text-sm mb-2 text-center border-b border-gray-700 pb-2">
                             {format(day.date, 'MMM d, yyyy')}
                           </div>
                           <div className="text-center mb-2">
                             <span className="text-2xl font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
                               {day.totalPosts}
                             </span>
-                            <span className="text-slate-400 ml-1">
+                            <span className="text-gray-300 ml-1">
                               {day.totalPosts === 1 ? 'post' : 'posts'}
                             </span>
                           </div>
                           {Object.entries(day.postsByPlatform).length > 0 && (
-                            <div className="space-y-1 pt-2 border-t border-slate-700">
+                            <div className="space-y-1 pt-2 border-t border-gray-700">
                               {Object.entries(day.postsByPlatform).map(([platform, count]) => (
                                 <div key={platform} className="flex justify-between items-center">
-                                  <span className="text-slate-400">
+                                  <span className="text-gray-400">
                                     {PLATFORM_NAMES[platform as keyof typeof PLATFORM_NAMES]}:
                                   </span>
                                   <span className="font-bold text-white">{count}</span>
@@ -131,7 +131,7 @@ export function ModernBarChart({ dailyStats }: ModernBarChartProps) {
                           )}
                         </div>
                         {/* Arrow */}
-                        <div className="w-3 h-3 bg-slate-950 border-r border-b border-slate-700 transform rotate-45 mx-auto -mt-1.5" />
+                        <div className="w-3 h-3 bg-gray-900 border-r border-b border-gray-700 transform rotate-45 mx-auto -mt-1.5" />
                       </div>
                     )}
 
@@ -170,7 +170,7 @@ export function ModernBarChart({ dailyStats }: ModernBarChartProps) {
                     {/* Date label */}
                     {(index % 5 === 0 || day.date.getDate() === 1 || index >= dailyStats.length - 3 || isToday) && (
                       <div className={`absolute top-full mt-2 left-1/2 -translate-x-1/2 text-[10px] whitespace-nowrap font-medium ${
-                        isToday ? 'text-blue-400 font-bold text-xs' : 'text-slate-500'
+                        isToday ? 'text-blue-600 font-bold text-xs' : 'text-gray-500'
                       }`}>
                         {isToday ? '📍 TODAY' : format(day.date, 'MMM d')}
                       </div>
@@ -183,7 +183,7 @@ export function ModernBarChart({ dailyStats }: ModernBarChartProps) {
         </div>
 
         {/* X-axis label */}
-        <div className="text-center mt-10 text-sm font-semibold text-slate-500">
+        <div className="text-center mt-10 text-sm font-semibold text-gray-600">
           Date
         </div>
       </div>
@@ -198,29 +198,29 @@ export function ModernBarChart({ dailyStats }: ModernBarChartProps) {
           { label: '10+ posts', gradient: 'from-purple-500 via-pink-500 to-rose-500', count: '10+' },
         ].map((item, i) => (
           <div key={i} className="flex items-center gap-2">
-            <div className={`w-8 h-8 bg-gradient-to-br ${item.gradient} rounded-lg shadow-lg`} />
-            <span className="text-xs text-slate-400 font-medium">{item.label}</span>
+            <div className={`w-8 h-8 bg-gradient-to-br ${item.gradient} rounded-lg shadow-md`} />
+            <span className="text-xs text-gray-700 font-medium">{item.label}</span>
           </div>
         ))}
       </div>
 
       {/* Stats Summary */}
       <div className="mt-6 grid grid-cols-3 gap-4">
-        <div className="bg-slate-800/50 rounded-xl p-3 border border-slate-700">
-          <div className="text-slate-400 text-xs mb-1">Total Posts</div>
-          <div className="text-white font-black text-xl">
+        <div className="bg-gray-50 rounded-xl p-3 border border-gray-200">
+          <div className="text-gray-600 text-xs mb-1">Total Posts</div>
+          <div className="text-gray-900 font-black text-xl">
             {dailyStats.reduce((sum, day) => sum + day.totalPosts, 0)}
           </div>
         </div>
-        <div className="bg-slate-800/50 rounded-xl p-3 border border-slate-700">
-          <div className="text-slate-400 text-xs mb-1">Best Day</div>
-          <div className="text-white font-black text-xl">
+        <div className="bg-gray-50 rounded-xl p-3 border border-gray-200">
+          <div className="text-gray-600 text-xs mb-1">Best Day</div>
+          <div className="text-gray-900 font-black text-xl">
             {Math.max(...dailyStats.map(d => d.totalPosts))}
           </div>
         </div>
-        <div className="bg-slate-800/50 rounded-xl p-3 border border-slate-700">
-          <div className="text-slate-400 text-xs mb-1">Avg/Day</div>
-          <div className="text-white font-black text-xl">
+        <div className="bg-gray-50 rounded-xl p-3 border border-gray-200">
+          <div className="text-gray-600 text-xs mb-1">Avg/Day</div>
+          <div className="text-gray-900 font-black text-xl">
             {(dailyStats.reduce((sum, day) => sum + day.totalPosts, 0) / dailyStats.length).toFixed(1)}
           </div>
         </div>
