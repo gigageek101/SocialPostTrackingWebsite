@@ -536,7 +536,7 @@ function getBaseTimeForShift(
     // Use first morning or evening time from Bangkok base times
     timeString = shift === 'morning' 
       ? PLATFORM_BASE_TIMES.tiktok[0] // 05:00
-      : PLATFORM_BASE_TIMES.tiktok[3]; // 16:00
+      : PLATFORM_BASE_TIMES.tiktok[2]; // 19:00
     // Convert from Bangkok time to UTC
     const [hours, minutes] = timeString.split(':').map(Number);
     const bangkokTime = new Date(now);
@@ -544,17 +544,17 @@ function getBaseTimeForShift(
     return bangkokTime.toISOString();
   } else if (platform === 'threads') {
     timeString = shift === 'morning'
-      ? PLATFORM_BASE_TIMES.threads[0] // 05:10
-      : PLATFORM_BASE_TIMES.threads[3]; // 16:10
+      ? PLATFORM_BASE_TIMES.threads[0] // 07:30
+      : PLATFORM_BASE_TIMES.threads[3]; // 16:00
     const [hours, minutes] = timeString.split(':').map(Number);
     const bangkokTime = new Date(now);
     bangkokTime.setUTCHours(hours - 7, minutes, 0, 0);
     return bangkokTime.toISOString();
   } else if (platform === 'instagram') {
-    // Instagram now has 4 posts: [09:00, 10:30, 18:00, 19:30]
+    // Instagram now has 2 posts: [08:00, 20:00] (1 morning, 1 evening)
     timeString = shift === 'morning'
-      ? PLATFORM_BASE_TIMES.instagram[0] // 09:00 (first morning post)
-      : PLATFORM_BASE_TIMES.instagram[2]; // 18:00 (first evening post)
+      ? PLATFORM_BASE_TIMES.instagram[0] // 08:00 (morning post)
+      : PLATFORM_BASE_TIMES.instagram[1]; // 20:00 (evening post)
     // Use creator timezone
     const [hours, minutes] = timeString.split(':').map(Number);
     const creatorTime = new Date(now);
@@ -562,8 +562,8 @@ function getBaseTimeForShift(
     return creatorTime.toISOString();
   } else { // facebook
     timeString = shift === 'morning'
-      ? PLATFORM_BASE_TIMES.facebook.morning // 07:00
-      : PLATFORM_BASE_TIMES.facebook.evening; // 17:00
+      ? PLATFORM_BASE_TIMES.facebook.morning // 10:00
+      : PLATFORM_BASE_TIMES.facebook.evening; // 19:00
     const [hours, minutes] = timeString.split(':').map(Number);
     const creatorTime = new Date(now);
     creatorTime.setHours(hours, minutes, 0, 0);
@@ -600,13 +600,17 @@ export function getTodayPostsForAccount(
 /**
  * Get max posts for a platform in a specific shift
  */
-export function getMaxPostsForPlatformShift(platform: Platform, _shift: 'morning' | 'evening'): number {
-  if (platform === 'tiktok' || platform === 'threads') {
-    return 3; // 3 posts per shift
+export function getMaxPostsForPlatformShift(platform: Platform, shift: 'morning' | 'evening'): number {
+  if (platform === 'tiktok') {
+    // TikTok: 2 morning, 2 evening (4 total)
+    return 2;
+  } else if (platform === 'threads') {
+    // Threads: 3 morning, 3 evening (6 total)
+    return 3;
   } else if (platform === 'instagram') {
-    return 2; // 2 posts per shift (4 total per day)
-  } else if (platform === 'facebook') {
     return 1; // 1 post per shift (2 total per day)
+  } else if (platform === 'facebook') {
+    return 0; // Facebook removed from scheduling
   }
   return 1;
 }
