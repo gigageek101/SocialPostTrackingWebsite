@@ -95,24 +95,30 @@ export function getNextRecommendedPost(
   let isDuringCooldown = false;
   let cooldownEndsInMinutes: number | undefined = undefined;
   
-  if (shiftPosts.length === 0) {
-    // First post of shift - use base time (always US timezone)
-    recommendedTimeUTC = getBaseTimeForShift(platform, shift, US_TIMEZONE);
+  // Use the exact scheduled time based on post number, not cooldown calculation
+  const scheduledTime = getScheduledTimeForPost(platform, shift, postNumber);
+  if (scheduledTime) {
+    recommendedTimeUTC = createUTCTimestampForBangkokTime(scheduledTime);
+    basedOnPreviousPost = false;
   } else {
-    // Calculate from previous post + cooldown
-    const lastPost = shiftPosts[shiftPosts.length - 1];
-    const cooldown = COOLDOWN_MINUTES[platform];
-    recommendedTimeUTC = addMinutesTime(lastPost.timestampUTC, cooldown);
-    basedOnPreviousPost = true;
-    
-    // Check if we're still in cooldown period
-    const now = new Date();
-    const lastPostTime = new Date(lastPost.timestampUTC);
-    const minutesSinceLastPost = Math.round((now.getTime() - lastPostTime.getTime()) / 1000 / 60);
-    
-    if (minutesSinceLastPost < cooldown) {
-      isDuringCooldown = true;
-      cooldownEndsInMinutes = cooldown - minutesSinceLastPost;
+    // Fallback: use first post + cooldown if no specific time defined
+    if (shiftPosts.length === 0) {
+      recommendedTimeUTC = getBaseTimeForShift(platform, shift, US_TIMEZONE);
+    } else {
+      const lastPost = shiftPosts[shiftPosts.length - 1];
+      const cooldown = COOLDOWN_MINUTES[platform];
+      recommendedTimeUTC = addMinutesTime(lastPost.timestampUTC, cooldown);
+      basedOnPreviousPost = true;
+      
+      // Check if we're still in cooldown period
+      const now = new Date();
+      const lastPostTime = new Date(lastPost.timestampUTC);
+      const minutesSinceLastPost = Math.round((now.getTime() - lastPostTime.getTime()) / 1000 / 60);
+      
+      if (minutesSinceLastPost < cooldown) {
+        isDuringCooldown = true;
+        cooldownEndsInMinutes = cooldown - minutesSinceLastPost;
+      }
     }
   }
   
@@ -508,6 +514,28 @@ function calculateRecommendationForPost(
     isDuringCooldown,
     cooldownEndsInMinutes,
   };
+}
+
+/**
+ * Get the scheduled time for a specific post number
+ * Returns the exact time from PLATFORM_BASE_TIMES array
+ */
+function getScheduledTimeForPost(platform: Platform, shift: 'morning' | 'evening', postNumber: number): string | null {
+  const times = PLATFORM_BASE_TIMES[platform];
+  if (!times || typeof times !== 'object' || Array.isArray(times) === false) {
+    return null;
+  }
+  
+  if (shift === 'morning') {
+    // Morning posts use the first half of the array
+    const index = postNumber - 1;
+    return (times as string[])[index] || null;
+  } else {
+    // Evening posts use the second half
+    const morningPostCount = getMaxPostsForPlatformShift(platform, 'morning');
+    const index = morningPostCount + (postNumber - 1);
+    return (times as string[])[index] || null;
+  }
 }
 
 /**
