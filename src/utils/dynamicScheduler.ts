@@ -644,7 +644,7 @@ export function getTodayPostsForAccount(
 export function getMaxPostsForPlatformShift(platform: Platform, shift: 'morning' | 'evening'): number {
   if (platform === 'tiktok') {
     // TikTok: 2 morning, 2 evening (4 total)
-    // ['05:45', '10:00', '19:00', '19:30']
+    // ['05:45', '10:00', '18:30', '20:30']
     return 2;
   } else if (platform === 'threads') {
     // Threads: 2 morning (07:30, 10:00), 4 evening (13:00, 16:00, 19:00, 20:30)
