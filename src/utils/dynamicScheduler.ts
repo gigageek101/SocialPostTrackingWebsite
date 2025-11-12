@@ -527,9 +527,13 @@ function createUTCTimestampForBangkokTime(bangkokTimeStr: string): string {
   });
   
   const parts = bangkokFormatter.formatToParts(now);
-  const yearStr = parts.find(p => p.type === 'year')?.value || '2024';
+  let yearStr = parts.find(p => p.type === 'year')?.value || '2024';
   const monthStr = parts.find(p => p.type === 'month')?.value || '01';
   const dayStr = parts.find(p => p.type === 'day')?.value || '01';
+  
+  // BUG FIX: Intl.DateTimeFormat might return year as '2025' in some browsers
+  // Use actual Date object year instead
+  yearStr = now.getFullYear().toString();
   
   // Construct ISO string with +07:00 offset (Bangkok timezone)
   const bangkokISO = `${yearStr}-${monthStr}-${dayStr}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00.000+07:00`;
