@@ -13,7 +13,7 @@ import { PLATFORM_NAMES } from '../../constants/platforms';
 import { getAllPostsForShift, RecommendedPost } from '../../utils/dynamicScheduler';
 
 export function ScheduleOverviewScreen() {
-  const { state, logPost, updatePost, skipPost, setCurrentScreen, manualSync } = useApp();
+  const { state, logPost, updatePost, skipPost, setCurrentScreen, manualSync, clearTodaysPosts } = useApp();
   const [selectedRecommendation, setSelectedRecommendation] = useState<RecommendedPost | null>(null);
   const [showChecklist, setShowChecklist] = useState(false);
   const [showBackdateModal, setShowBackdateModal] = useState(false);
@@ -289,20 +289,41 @@ export function ScheduleOverviewScreen() {
               📋 {currentShift === 'morning' ? 'Morning' : 'Evening'} Shift Checklist
             </h2>
             
-            {/* Sort Filter Button */}
-            {currentShiftPosts.length > 0 && (
-              <button
-                onClick={() => setSortByYourTime(!sortByYourTime)}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 font-semibold shadow-md hover:shadow-lg ${
-                  sortByYourTime 
-                    ? 'bg-green-600 hover:bg-green-700 text-white' 
-                    : 'bg-gray-600 hover:bg-gray-700 text-white'
-                }`}
-              >
-                <Clock className="w-4 h-4" />
-                {sortByYourTime ? '✓ Sorted by Time' : 'Sort by Time'}
-              </button>
-            )}
+            {/* Action Buttons */}
+            <div className="flex items-center gap-3">
+              {/* Clear Today's Posts Button */}
+              {currentShiftPosts.length > 0 && (
+                <button
+                  onClick={() => {
+                    if (confirm('Clear all posts from today?\n\nThis will remove all posts scheduled for today and regenerate them with your current schedule settings.')) {
+                      clearTodaysPosts();
+                      // Force immediate re-render
+                      setCurrentTime(new Date());
+                    }
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 font-semibold shadow-md hover:shadow-lg bg-red-600 hover:bg-red-700 text-white"
+                  title="Clear all today's posts and regenerate with current schedule"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Clear Today's Posts
+                </button>
+              )}
+              
+              {/* Sort Filter Button */}
+              {currentShiftPosts.length > 0 && (
+                <button
+                  onClick={() => setSortByYourTime(!sortByYourTime)}
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 font-semibold shadow-md hover:shadow-lg ${
+                    sortByYourTime 
+                      ? 'bg-green-600 hover:bg-green-700 text-white' 
+                      : 'bg-gray-600 hover:bg-gray-700 text-white'
+                  }`}
+                >
+                  <Clock className="w-4 h-4" />
+                  {sortByYourTime ? '✓ Sorted by Time' : 'Sort by Time'}
+                </button>
+              )}
+            </div>
           </div>
           
           {currentShiftPosts.length === 0 ? (

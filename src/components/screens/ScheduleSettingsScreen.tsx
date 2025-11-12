@@ -15,7 +15,7 @@ interface PlatformSchedule {
 }
 
 export function ScheduleSettingsScreen() {
-  const { state, setCurrentScreen, updateUserSettings, clearTodaysPosts } = useApp();
+  const { state, setCurrentScreen, updateUserSettings } = useApp();
   
   // Initialize schedule state from constants
   const [schedules, setSchedules] = useState<PlatformSchedule[]>([
@@ -122,16 +122,12 @@ export function ScheduleSettingsScreen() {
       scheduleSettings,
     });
     
-    // Wait for state to update AND localStorage to save BEFORE clearing posts
-    // React setState is async, so we need to give it time to propagate
+    setHasChanges(false);
+    
+    // Wait a moment for state to propagate, then redirect
     setTimeout(() => {
-      // Clear today's posts so they regenerate with new schedule
-      clearTodaysPosts();
-      
-      setHasChanges(false);
-      // Redirect to today screen
       setCurrentScreen('schedule-overview');
-    }, 300); // 300ms delay to ensure state + localStorage have updated
+    }, 100);
   };
 
   const handleReset = () => {
