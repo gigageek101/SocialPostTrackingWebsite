@@ -206,13 +206,9 @@ export function PostCard({
             )}
             
             <div className="space-y-1 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="text-gray-600">US Time:</span>
-                <span className="font-medium text-gray-900">{rec.recommendedTimeCreatorTZ}</span>
-              </div>
               {!isCompleted && (
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-600">Your Time:</span>
+                  <span className="text-gray-600">Scheduled Time:</span>
                   <span className="font-medium text-gray-900">{rec.recommendedTimeUserTZ}</span>
                 </div>
               )}

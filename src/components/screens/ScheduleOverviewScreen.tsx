@@ -92,7 +92,6 @@ export function ScheduleOverviewScreen() {
   // Get all posts for current shift - recalculate when schedule changes
   const morningPosts = useMemo(() => {
     if (!state.userSettings) return [];
-    console.log('🔄 Recalculating morning posts with schedule:', state.userSettings.scheduleSettings?.tiktok?.times);
     return getAllPostsForShift(
       state.accounts,
       state.creators,
@@ -104,7 +103,6 @@ export function ScheduleOverviewScreen() {
 
   const eveningPosts = useMemo(() => {
     if (!state.userSettings) return [];
-    console.log('🔄 Recalculating evening posts with schedule:', state.userSettings.scheduleSettings?.tiktok?.times);
     return getAllPostsForShift(
       state.accounts,
       state.creators,

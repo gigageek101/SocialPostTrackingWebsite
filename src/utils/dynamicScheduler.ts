@@ -69,15 +69,7 @@ export function getNextRecommendedPost(
     return postShift === shift;
   });
   
-  // Debug logging
-  if (accountPostsToday.length > 0) {
-    console.log(`📊 Scheduler for ${account.handle} (${platform}), ${shift} shift:`, {
-      totalPostsToday: accountPostsToday.length,
-      postsInThisShift: shiftPosts.length,
-      maxPostsForShift: getMaxPostsForPlatformShift(platform, shift),
-      nextPostNumber: shiftPosts.length + 1
-    });
-  }
+  // Debug logging removed to reduce console spam
   
   // Determine how many posts for this platform in this shift
   const maxPosts = getMaxPostsForPlatformShift(platform, shift);
@@ -97,8 +89,6 @@ export function getNextRecommendedPost(
   
   // Use the exact scheduled time based on post number, not cooldown calculation
   const scheduledTime = getScheduledTimeForPost(platform, shift, postNumber, userSettings);
-  console.log(`📅 ${platform} ${shift} Post ${postNumber} → Scheduled Time: ${scheduledTime}`);
-  console.log(`   → From schedule:`, userSettings.scheduleSettings?.[platform]?.times || 'using hardcoded defaults');
   
   if (scheduledTime) {
     recommendedTimeUTC = createUTCTimestampForBangkokTime(scheduledTime);
