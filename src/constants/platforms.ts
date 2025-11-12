@@ -44,11 +44,9 @@ export const CHECKLIST_TEMPLATES: PlatformChecklistTemplate[] = [
     recommendedProtocol: 'Perfect TikTok Engagement Method',
     items: [
       {
-        id: 'tiktok-dms',
-        label: 'Send 10 DMs funneling to IG (all different)',
-        type: 'counter',
-        count: 10,
-        recommendedCount: 10,
+        id: 'tiktok-homefeed',
+        label: 'Scroll homefeed for 3 minutes (like & save content)',
+        type: 'toggle',
       },
       {
         id: 'tiktok-likes',
@@ -70,14 +68,11 @@ export const CHECKLIST_TEMPLATES: PlatformChecklistTemplate[] = [
         type: 'toggle',
       },
       {
-        id: 'tiktok-stories',
-        label: 'View stories of target audience',
-        type: 'toggle',
-      },
-      {
-        id: 'tiktok-homefeed',
-        label: 'Scroll homefeed for 3 minutes (like & save content)',
-        type: 'toggle',
+        id: 'tiktok-dms',
+        label: 'Send 10 DMs funneling to IG (all different)',
+        type: 'counter',
+        count: 10,
+        recommendedCount: 10,
       },
     ],
   },
