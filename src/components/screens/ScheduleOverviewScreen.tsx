@@ -19,7 +19,7 @@ export function ScheduleOverviewScreen() {
   const [showBackdateModal, setShowBackdateModal] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [syncing, setSyncing] = useState(false);
-  const [sortByYourTime, setSortByYourTime] = useState(false);
+  const [sortByYourTime, setSortByYourTime] = useState(true); // Default to sorted by time
 
   useEffect(() => {
     // Update current time every second

@@ -96,9 +96,11 @@ export function ScheduleSettingsScreen() {
   const handleSave = () => {
     // TODO: Save to constants/settings
     // This would require updating the PLATFORM_BASE_TIMES and COOLDOWN_MINUTES
-    // For now, we'll just alert the user
-    alert('⚠️ Schedule settings saved!\n\nNote: To make these changes permanent, you would need to update the constants file and redeploy.');
+    // For now, we'll just alert the user and redirect
+    alert('✅ Schedule settings saved!\n\nNote: To make these changes permanent across sessions, you would need to update the constants file and redeploy.');
     setHasChanges(false);
+    // Redirect to today screen
+    setCurrentScreen('schedule-overview');
   };
 
   const handleReset = () => {

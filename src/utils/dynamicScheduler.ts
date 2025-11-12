@@ -511,6 +511,30 @@ function calculateRecommendationForPost(
 }
 
 /**
+ * Convert Bangkok time string to UTC ISO string for today
+ */
+function bangkokTimeToUTC(timeString: string): string {
+  // Get today's date in Bangkok timezone
+  const nowInBangkok = new Date().toLocaleString('en-US', { 
+    timeZone: 'Asia/Bangkok',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour12: false
+  });
+  
+  // Parse the Bangkok date (format: MM/DD/YYYY, ...)
+  const [datePart] = nowInBangkok.split(',');
+  const [month, day, year] = datePart.split('/');
+  
+  // Create a date string in ISO format for Bangkok timezone
+  // Bangkok is UTC+7, so we use +07:00 offset
+  const bangkokDate = new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${timeString}:00+07:00`);
+  
+  return bangkokDate.toISOString();
+}
+
+/**
  * Get the base time for a platform/shift combination
  */
 function getBaseTimeForShift(
@@ -526,27 +550,20 @@ function getBaseTimeForShift(
     timeString = shift === 'morning' 
       ? PLATFORM_BASE_TIMES.tiktok[0] // 05:45
       : PLATFORM_BASE_TIMES.tiktok[2]; // 19:00
-    // Convert from Bangkok time to UTC
-    const [hours, minutes] = timeString.split(':').map(Number);
-    const bangkokTime = new Date(now);
-    bangkokTime.setUTCHours(hours - 7, minutes, 0, 0); // Bangkok is UTC+7
-    return bangkokTime.toISOString();
+    return bangkokTimeToUTC(timeString);
   } else if (platform === 'threads') {
     // Threads: ['07:30', '10:00', '13:00', '16:00', '19:00', '20:30']
     // Morning (before 12:00): 07:30, Evening (12:00+): 13:00
     timeString = shift === 'morning'
       ? PLATFORM_BASE_TIMES.threads[0] // 07:30 (first morning post)
       : PLATFORM_BASE_TIMES.threads[2]; // 13:00 (first evening post at 1 PM)
-    const [hours, minutes] = timeString.split(':').map(Number);
-    const bangkokTime = new Date(now);
-    bangkokTime.setUTCHours(hours - 7, minutes, 0, 0);
-    return bangkokTime.toISOString();
+    return bangkokTimeToUTC(timeString);
   } else if (platform === 'instagram') {
     // Instagram now has 2 posts: [08:00, 20:00] (1 morning, 1 evening)
     timeString = shift === 'morning'
       ? PLATFORM_BASE_TIMES.instagram[0] // 08:00 (morning post)
       : PLATFORM_BASE_TIMES.instagram[1]; // 20:00 (evening post)
-    // Use creator timezone
+    // Use creator timezone (US Central)
     const [hours, minutes] = timeString.split(':').map(Number);
     const creatorTime = new Date(now);
     creatorTime.setHours(hours, minutes, 0, 0);
