@@ -38,11 +38,25 @@ export function ScheduledPostsScreen() {
     );
   }
 
-  // Get today's actual posts
-  const today = format(new Date(), 'yyyy-MM-dd');
+  // Get today's actual posts (in user's timezone)
+  const now = new Date();
+  const todayInUserTZ = now.toLocaleString('en-US', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: state.userSettings!.userTimezone,
+  }).split('/').reverse().join('-').replace(/(\d+)-(\d+)-(\d+)/, '$3-$1-$2');
+  
   const todayPosts = state.postLogs.filter(log => {
-    const logDate = format(new Date(log.timestampUTC), 'yyyy-MM-dd');
-    return logDate === today;
+    // Get the post date in user's timezone
+    const postDateInUserTZ = new Date(log.timestampUTC).toLocaleString('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      timeZone: state.userSettings!.userTimezone,
+    }).split('/').reverse().join('-').replace(/(\d+)-(\d+)-(\d+)/, '$3-$1-$2');
+    
+    return postDateInUserTZ === todayInUserTZ;
   }).sort((a, b) => a.timestampUTC.localeCompare(b.timestampUTC));
 
   // Separate by shift (morning/evening)
