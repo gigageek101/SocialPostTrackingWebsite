@@ -1,6 +1,6 @@
 import { useApp } from '../../context/AppContext';
 import { Card } from '../ui/Card';
-import { Clock, Video, MessageSquare, Instagram as InstagramIcon, Facebook, TrendingUp, Coffee, Moon } from 'lucide-react';
+import { Clock, Video, MessageSquare, Instagram as InstagramIcon, TrendingUp, Coffee, Moon } from 'lucide-react';
 
 export function WorkflowScreen() {
   const { state } = useApp();
@@ -12,10 +12,10 @@ export function WorkflowScreen() {
   const facebookCount = state.accounts.filter(a => a.platform === 'facebook').length;
 
   // Calculate totals
-  const totalTikToks = tiktokCount * 6; // 6 per account per day
+  const totalTikToks = tiktokCount * 4; // 4 per account per day
   const totalThreads = threadsCount * 6; // 6 per account per day
-  const totalInstagram = instagramCount * 4; // 4 per account per day
-  const totalFacebook = facebookCount * 2; // 2 per account per day
+  const totalInstagram = instagramCount * 2; // 2 per account per day
+  const totalFacebook = facebookCount * 0; // Facebook removed
 
   // Get user's timezone display
   const userTimezone = state.userSettings?.userTimezone || 'Unknown';
@@ -48,9 +48,9 @@ export function WorkflowScreen() {
           
           <div className="space-y-4">
             <div className="p-4 bg-indigo-50 rounded-xl border-2 border-indigo-200">
-              <h3 className="font-bold text-indigo-900 mb-2">⏰ Wake-Up Time: 4:00 AM</h3>
+              <h3 className="font-bold text-indigo-900 mb-2">⏰ Wake-Up Time: 4:30 AM BKT</h3>
               <p className="text-sm text-indigo-800">
-                I recommend waking up at 4:00 AM to be fresh and ready for your first posts at 5:00 AM. 
+                I recommend waking up at 4:30 AM BKT (Bangkok Time) to be fresh and ready for your first posts at 5:45 AM. 
                 This gives you time to prepare, grab coffee ☕, and start your day with focus.
               </p>
             </div>
@@ -58,12 +58,14 @@ export function WorkflowScreen() {
             <div className="p-4 bg-green-50 rounded-xl border-2 border-green-200">
               <h3 className="font-bold text-green-900 mb-2 flex items-center gap-2">
                 <Coffee className="w-5 h-5" />
-                🌅 Morning Shift (5:00 AM - 2:00 PM)
+                🌅 Morning Shift Schedule (BKT)
               </h3>
               <ul className="space-y-2 text-sm text-green-800">
-                <li>• <strong>5:00 AM:</strong> Start posting TikToks and Threads (first posts)</li>
-                <li>• <strong>After first posts:</strong> Instagram & Facebook morning posts</li>
-                <li>• <strong>Continue:</strong> TikTok and Threads posts 2-3 with 2-hour cooldowns</li>
+                <li>• <strong>5:45 AM:</strong> TikTok Post #1 (3:45 PM CT)</li>
+                <li>• <strong>7:30 AM:</strong> Threads Post #1 (5:30 PM CT)</li>
+                <li>• <strong>8:00 AM:</strong> Instagram morning post (varies by creator timezone)</li>
+                <li>• <strong>10:00 AM:</strong> TikTok Post #2 + Threads Post #2 (8:00 PM CT - PEAK TIME)</li>
+                <li>• <strong>1:00 PM:</strong> Threads Post #3 (11:00 PM CT)</li>
                 <li>• <strong>Complete all interactions</strong> after each post</li>
               </ul>
             </div>
@@ -71,11 +73,14 @@ export function WorkflowScreen() {
             <div className="p-4 bg-purple-50 rounded-xl border-2 border-purple-200">
               <h3 className="font-bold text-purple-900 mb-2 flex items-center gap-2">
                 <Moon className="w-5 h-5" />
-                🌙 Evening Shift (After 2:00 PM)
+                🌙 Evening Shift Schedule (BKT)
               </h3>
               <ul className="space-y-2 text-sm text-purple-800">
-                <li>• <strong>Start with:</strong> TikTok and Threads posts (all remaining posts)</li>
-                <li>• <strong>End with:</strong> Instagram & Facebook evening posts (at the very end)</li>
+                <li>• <strong>4:00 PM:</strong> Threads Post #4 (2:00 AM CT - Low engagement slot)</li>
+                <li>• <strong>7:00 PM:</strong> TikTok Post #3 + Threads Post #5 (5:00 AM CT - Early morning US)</li>
+                <li>• <strong>7:30 PM:</strong> TikTok Post #4 (5:30 AM CT - Optional)</li>
+                <li>• <strong>8:00 PM:</strong> Instagram evening post (varies by creator timezone)</li>
+                <li>• <strong>8:30 PM:</strong> Threads Post #6 (6:30 AM CT - Approaching peak)</li>
                 <li>• <strong>Maintain 2-hour cooldowns</strong> for TikTok and Threads</li>
               </ul>
             </div>
@@ -125,7 +130,7 @@ export function WorkflowScreen() {
                       <span className="font-semibold text-gray-900">TikTok Content</span>
                     </div>
                     <p className="text-sm text-gray-700">
-                      <strong>{tiktokCount}</strong> account{tiktokCount > 1 ? 's' : ''} × 6 posts/day = 
+                      <strong>{tiktokCount}</strong> account{tiktokCount > 1 ? 's' : ''} × 4 posts/day = 
                       <strong className="text-orange-600 ml-1">{totalTikToks} TikTok videos total</strong>
                     </p>
                   </div>
@@ -151,21 +156,8 @@ export function WorkflowScreen() {
                       <span className="font-semibold text-gray-900">Instagram Content</span>
                     </div>
                     <p className="text-sm text-gray-700">
-                      <strong>{instagramCount}</strong> account{instagramCount > 1 ? 's' : ''} × 4 posts/day = 
+                      <strong>{instagramCount}</strong> account{instagramCount > 1 ? 's' : ''} × 2 posts/day = 
                       <strong className="text-orange-600 ml-1">{totalInstagram} Instagram posts total</strong>
-                    </p>
-                  </div>
-                )}
-
-                {facebookCount > 0 && (
-                  <div className="bg-white p-3 rounded-lg">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Facebook className="w-5 h-5 text-gray-700" />
-                      <span className="font-semibold text-gray-900">Facebook Content</span>
-                    </div>
-                    <p className="text-sm text-gray-700">
-                      <strong>{facebookCount}</strong> account{facebookCount > 1 ? 's' : ''} × 2 posts/day = 
-                      <strong className="text-orange-600 ml-1">{totalFacebook} Facebook posts total</strong>
                     </p>
                   </div>
                 )}

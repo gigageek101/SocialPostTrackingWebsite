@@ -535,7 +535,7 @@ function getBaseTimeForShift(
   if (platform === 'tiktok') {
     // Use first morning or evening time from Bangkok base times
     timeString = shift === 'morning' 
-      ? PLATFORM_BASE_TIMES.tiktok[0] // 05:00
+      ? PLATFORM_BASE_TIMES.tiktok[0] // 05:45
       : PLATFORM_BASE_TIMES.tiktok[2]; // 19:00
     // Convert from Bangkok time to UTC
     const [hours, minutes] = timeString.split(':').map(Number);
