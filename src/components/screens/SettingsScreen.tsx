@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Select } from '../ui/Select';
-import { Settings as SettingsIcon, Download, Upload, Bell, BellOff, Trash2, CalendarX, LogOut, RefreshCw } from 'lucide-react';
+import { Input } from '../ui/Input';
+import { Settings as SettingsIcon, Download, Upload, Bell, BellOff, Trash2, CalendarX, LogOut, RefreshCw, Send } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { COMMON_TIMEZONES } from '../../utils/timezone';
 import { exportData, importData, clearStorage } from '../../utils/storage';
@@ -12,6 +13,8 @@ export function SettingsScreen() {
   const { state, updateUserSettings, importData: handleImport, clearScheduleData, setAuthState, setCurrentScreen, manualSync } = useApp();
   const [importing, setImporting] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [telegramBotToken, setTelegramBotToken] = useState(state.userSettings?.telegramBotToken || '');
+  const [telegramChatId, setTelegramChatId] = useState(state.userSettings?.telegramChatId || '');
 
   if (!state.userSettings) return null;
   
@@ -28,6 +31,21 @@ export function SettingsScreen() {
     } else {
       updateUserSettings({ notificationsEnabled: false });
     }
+  };
+
+  const handleSaveTelegramSettings = () => {
+    updateUserSettings({
+      telegramBotToken: telegramBotToken.trim(),
+      telegramChatId: telegramChatId.trim(),
+      telegramNotificationsEnabled: telegramBotToken.trim() !== '' && telegramChatId.trim() !== '',
+    });
+    alert('✅ Telegram settings saved! You will now receive posting reminders.');
+  };
+
+  const handleToggleTelegramNotifications = () => {
+    updateUserSettings({
+      telegramNotificationsEnabled: !userSettings.telegramNotificationsEnabled,
+    });
   };
 
   const handleExport = () => {
@@ -164,6 +182,107 @@ export function SettingsScreen() {
             >
               {userSettings.notificationsEnabled ? 'Disable' : 'Enable'}
             </Button>
+          </div>
+        </div>
+      </Card>
+
+      {/* Telegram Notifications */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-gray-900">Telegram Notifications</h2>
+          {userSettings.telegramNotificationsEnabled && (
+            <span className="text-xs bg-green-100 text-green-800 px-3 py-1 rounded-full font-semibold">
+              Active
+            </span>
+          )}
+        </div>
+
+        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm text-blue-900 mb-2">
+            <strong>📱 Get automated posting reminders!</strong>
+          </p>
+          <p className="text-xs text-blue-700">
+            Our system will check your schedule every 10 minutes and send you Telegram notifications when it's time to post.
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Telegram Bot Token
+            </label>
+            <Input
+              type="text"
+              value={telegramBotToken}
+              onChange={(e) => setTelegramBotToken(e.target.value)}
+              placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
+              className="font-mono text-sm"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Create a bot with @BotFather on Telegram
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Telegram Chat ID
+            </label>
+            <Input
+              type="text"
+              value={telegramChatId}
+              onChange={(e) => setTelegramChatId(e.target.value)}
+              placeholder="-1001234567890"
+              className="font-mono text-sm"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Get your chat ID from @userinfobot
+            </p>
+          </div>
+
+          <Button
+            onClick={handleSaveTelegramSettings}
+            fullWidth
+            className="flex items-center justify-center gap-2"
+            disabled={!telegramBotToken.trim() || !telegramChatId.trim()}
+          >
+            <Send className="w-4 h-4" />
+            Save Telegram Settings
+          </Button>
+
+          {userSettings.telegramBotToken && userSettings.telegramChatId && (
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-3">
+                {userSettings.telegramNotificationsEnabled ? (
+                  <Bell className="w-6 h-6 text-green-600" />
+                ) : (
+                  <BellOff className="w-6 h-6 text-gray-400" />
+                )}
+                <div>
+                  <h3 className="font-semibold text-gray-900">Telegram Reminders</h3>
+                  <p className="text-sm text-gray-600">
+                    {userSettings.telegramNotificationsEnabled
+                      ? 'You will receive notifications'
+                      : 'Notifications are paused'}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant={userSettings.telegramNotificationsEnabled ? 'secondary' : 'primary'}
+                onClick={handleToggleTelegramNotifications}
+              >
+                {userSettings.telegramNotificationsEnabled ? 'Pause' : 'Enable'}
+              </Button>
+            </div>
+          )}
+
+          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-xs text-yellow-800">
+              <strong>ℹ️ How to set up:</strong><br />
+              1. Create a bot with @BotFather on Telegram<br />
+              2. Get your chat ID from @userinfobot<br />
+              3. Start a conversation with your bot<br />
+              4. Enter the details above and save
+            </p>
           </div>
         </div>
       </Card>

@@ -9,6 +9,9 @@ export interface UserSettings {
   userTimezone: string;
   notificationsEnabled: boolean;
   hideTimesPopup: boolean;
+  telegramBotToken?: string;
+  telegramChatId?: string;
+  telegramNotificationsEnabled?: boolean;
   createdAt: string;
 }
 
