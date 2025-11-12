@@ -32,6 +32,9 @@ import {
   resetAllCaptionsForCreator,
 } from '../services/supabaseService';
 
+// 🔴 DISABLE SUPABASE - Make everything work locally only
+const ENABLE_SUPABASE_SYNC = false;
+
 interface AppContextType {
   state: AppState;
   currentScreen: Screen;
@@ -113,7 +116,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Smart auto-sync: Poll for changes and MERGE intelligently (never replace/delete)
   useEffect(() => {
-    if (!state.authState?.isAuthenticated || !state.authState?.currentCreatorId || pauseAutoSync) {
+    if (!ENABLE_SUPABASE_SYNC || !state.authState?.isAuthenticated || !state.authState?.currentCreatorId || pauseAutoSync) {
       return;
     }
 
@@ -279,7 +282,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         : null;
       
       // Sync to Supabase
-      if (updated && state.authState.isAuthenticated) {
+      if (ENABLE_SUPABASE_SYNC && updated && state.authState.isAuthenticated) {
         syncUserSettings(updated).catch(err => 
           console.error('Failed to sync user settings:', err)
         );
@@ -339,7 +342,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       );
       
       // Sync to Supabase
-      if (state.authState.isAuthenticated) {
+      if (ENABLE_SUPABASE_SYNC && state.authState.isAuthenticated) {
         const updatedCreator = updatedCreators.find(c => c.id === id);
         if (updatedCreator) {
           console.log('⬆️ Syncing creator update to Supabase:', updatedCreator.name);
@@ -369,7 +372,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }));
     
     // Delete from Supabase
-    if (state.authState.isAuthenticated) {
+    if (ENABLE_SUPABASE_SYNC && state.authState.isAuthenticated) {
       console.log('🗑️ Deleting creator from Supabase:', id);
       deleteCreatorFromSupabase(id).then(result => {
         if (result.error) {
@@ -412,7 +415,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }));
     
     // Sync to Supabase
-    if (state.authState.isAuthenticated) {
+    if (ENABLE_SUPABASE_SYNC && state.authState.isAuthenticated) {
       console.log('⬆️ Syncing new account to Supabase:', account.handle);
       syncPlatformAccount(account).then(result => {
         if (result.error) {
@@ -437,7 +440,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       );
       
       // Sync to Supabase
-      if (state.authState.isAuthenticated) {
+      if (ENABLE_SUPABASE_SYNC && state.authState.isAuthenticated) {
         const updatedAccount = updatedAccounts.find(a => a.id === id);
         if (updatedAccount) {
           console.log('⬆️ Syncing account update to Supabase:', updatedAccount.handle);
@@ -478,7 +481,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }));
     
     // Delete from Supabase
-    if (state.authState.isAuthenticated) {
+    if (ENABLE_SUPABASE_SYNC && state.authState.isAuthenticated) {
       console.log('🗑️ Deleting account from Supabase:', id);
       deleteAccountFromSupabase(id).then(result => {
         if (result.error) {
@@ -706,7 +709,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     // Sync post log to Supabase
-    if (state.authState.isAuthenticated) {
+    if (ENABLE_SUPABASE_SYNC && state.authState.isAuthenticated) {
       // Get the most recent post from the updated state
       setTimeout(async () => {
         const currentState = state;
@@ -724,7 +727,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         // If captions were marked as used, sync the updated account
         const updatedAccount = currentState.accounts.find(a => a.id === (accountId || finalAccount?.id));
-        if (updatedAccount) {
+        if (ENABLE_SUPABASE_SYNC && updatedAccount) {
           console.log('⬆️ Syncing caption status to Supabase');
           await syncPlatformAccount(updatedAccount);
         }
@@ -782,7 +785,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     console.log('⏭️ Post skipped (no cooldown applied)');
     
     // Sync to Supabase FIRST, then call onComplete
-    if (state.authState.isAuthenticated) {
+    if (ENABLE_SUPABASE_SYNC && state.authState.isAuthenticated) {
       setTimeout(async () => {
         console.log('⬆️ Syncing skipped post to Supabase');
         const result = await syncPostLog(postLog);
@@ -841,7 +844,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
     
     // Sync to Supabase
-    if (state.authState.isAuthenticated) {
+    if (ENABLE_SUPABASE_SYNC && state.authState.isAuthenticated) {
       setTimeout(async () => {
         const currentState = state;
         const updatedPost = currentState.postLogs.find(log => {
@@ -993,7 +996,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     console.log('🗑️ Clearing schedule data...');
     
     // Clear from Supabase first if authenticated
-    if (state.authState?.isAuthenticated && state.authState?.currentCreatorId) {
+    if (ENABLE_SUPABASE_SYNC && state.authState?.isAuthenticated && state.authState?.currentCreatorId) {
       console.log('⬆️ Deleting all post logs from Supabase...');
       const deleteResult = await deleteAllPostLogsForCreator(state.authState.currentCreatorId);
       if (deleteResult.error) {
@@ -1040,6 +1043,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const manualSync = async () => {
+    if (!ENABLE_SUPABASE_SYNC) {
+      console.log('⚠️ Supabase sync is disabled');
+      return;
+    }
+    
     if (!state.authState?.isAuthenticated || !state.authState?.currentCreatorId) {
       throw new Error('Not authenticated');
     }
@@ -1082,7 +1090,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }));
 
     // Load data from Supabase when user logs in
-    if (authState.isAuthenticated && authState.currentCreatorId) {
+    if (ENABLE_SUPABASE_SYNC && authState.isAuthenticated && authState.currentCreatorId) {
       console.log('🔄 Loading data from Supabase for creator:', authState.currentCreatorId);
       
       const { creator, accounts, postLogs, userSettings, error } = await fetchCreatorData(
@@ -1156,7 +1164,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const supabaseAccountIds = new Set(accounts.map(a => a.id));
         const localAccountsToSync = prev.accounts.filter(a => !supabaseAccountIds.has(a.id));
         
-        if (localAccountsToSync.length > 0) {
+        if (ENABLE_SUPABASE_SYNC && localAccountsToSync.length > 0) {
           console.log(`⬆️ Syncing ${localAccountsToSync.length} local account(s) to Supabase...`);
           
           localAccountsToSync.forEach(async (account) => {
