@@ -96,7 +96,7 @@ export function getNextRecommendedPost(
   let cooldownEndsInMinutes: number | undefined = undefined;
   
   // Use the exact scheduled time based on post number, not cooldown calculation
-  const scheduledTime = getScheduledTimeForPost(platform, shift, postNumber);
+  const scheduledTime = getScheduledTimeForPost(platform, shift, postNumber, userSettings);
   console.log(`📅 ${platform} ${shift} Post ${postNumber} → Scheduled Time: ${scheduledTime}`);
   
   if (scheduledTime) {
@@ -520,23 +520,37 @@ function calculateRecommendationForPost(
 
 /**
  * Get the scheduled time for a specific post number
- * Returns the exact time from PLATFORM_BASE_TIMES array
+ * Returns the exact time from schedule settings (or PLATFORM_BASE_TIMES as fallback)
  */
-function getScheduledTimeForPost(platform: Platform, shift: 'morning' | 'evening', postNumber: number): string | null {
-  const times = PLATFORM_BASE_TIMES[platform];
-  if (!times || typeof times !== 'object' || Array.isArray(times) === false) {
-    return null;
-  }
+function getScheduledTimeForPost(
+  platform: Platform, 
+  shift: 'morning' | 'evening', 
+  postNumber: number, 
+  userSettings: UserSettings
+): string | null {
+  // Use custom schedule settings if available, otherwise fall back to defaults
+  let times: string[];
   
+  if (userSettings.scheduleSettings && userSettings.scheduleSettings[platform]) {
+    times = userSettings.scheduleSettings[platform].times;
+  } else {
+    // Fallback to hardcoded defaults
+    const defaultTimes = PLATFORM_BASE_TIMES[platform];
+    if (!defaultTimes || typeof defaultTimes !== 'object' || Array.isArray(defaultTimes) === false) {
+      return null;
+    }
+    times = defaultTimes as string[];
+  }
+
   if (shift === 'morning') {
     // Morning posts use the first half of the array
     const index = postNumber - 1;
-    return (times as string[])[index] || null;
+    return times[index] || null;
   } else {
     // Evening posts use the second half
     const morningPostCount = getMaxPostsForPlatformShift(platform, 'morning');
     const index = morningPostCount + (postNumber - 1);
-    return (times as string[])[index] || null;
+    return times[index] || null;
   }
 }
 

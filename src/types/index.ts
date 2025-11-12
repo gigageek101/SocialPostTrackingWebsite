@@ -3,6 +3,19 @@ export type Platform = 'tiktok' | 'threads' | 'instagram' | 'facebook';
 
 export type PostStatus = 'pending' | 'posted' | 'cooldown' | 'skipped';
 
+// Platform Schedule Settings
+export interface PlatformScheduleSettings {
+  times: string[]; // Array of posting times in HH:MM format (Bangkok time)
+  cooldown: number; // Cooldown in minutes
+}
+
+export interface ScheduleSettings {
+  tiktok: PlatformScheduleSettings;
+  threads: PlatformScheduleSettings;
+  instagram: PlatformScheduleSettings;
+  facebook: PlatformScheduleSettings;
+}
+
 // User Settings
 export interface UserSettings {
   id: string;
@@ -12,6 +25,7 @@ export interface UserSettings {
   telegramBotToken?: string;
   telegramChatId?: string;
   telegramNotificationsEnabled?: boolean;
+  scheduleSettings?: ScheduleSettings; // Custom schedule settings (overrides defaults)
   createdAt: string;
 }
 

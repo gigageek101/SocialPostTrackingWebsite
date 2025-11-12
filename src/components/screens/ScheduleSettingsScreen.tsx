@@ -15,7 +15,7 @@ interface PlatformSchedule {
 }
 
 export function ScheduleSettingsScreen() {
-  const { setCurrentScreen } = useApp();
+  const { state, setCurrentScreen, updateUserSettings } = useApp();
   
   // Initialize schedule state from constants
   const [schedules, setSchedules] = useState<PlatformSchedule[]>([
@@ -94,10 +94,34 @@ export function ScheduleSettingsScreen() {
   };
 
   const handleSave = () => {
-    // TODO: Save to constants/settings
-    // This would require updating the PLATFORM_BASE_TIMES and COOLDOWN_MINUTES
-    // For now, we'll just alert the user and redirect
-    alert('✅ Schedule settings saved!\n\nNote: To make these changes permanent across sessions, you would need to update the constants file and redeploy.');
+    if (!state.userSettings) return;
+    
+    // Build schedule settings from current state
+    const scheduleSettings = {
+      tiktok: {
+        times: schedules.find(s => s.platform === 'tiktok')!.times,
+        cooldown: schedules.find(s => s.platform === 'tiktok')!.cooldown,
+      },
+      threads: {
+        times: schedules.find(s => s.platform === 'threads')!.times,
+        cooldown: schedules.find(s => s.platform === 'threads')!.cooldown,
+      },
+      instagram: {
+        times: schedules.find(s => s.platform === 'instagram')!.times,
+        cooldown: schedules.find(s => s.platform === 'instagram')!.cooldown,
+      },
+      facebook: {
+        times: ['10:00', '19:00'],
+        cooldown: 0,
+      },
+    };
+    
+    // Save to user settings
+    updateUserSettings({
+      ...state.userSettings,
+      scheduleSettings,
+    });
+    
     setHasChanges(false);
     // Redirect to today screen
     setCurrentScreen('schedule-overview');
