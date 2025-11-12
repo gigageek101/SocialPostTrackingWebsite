@@ -600,7 +600,7 @@ export function getTodayPostsForAccount(
 /**
  * Get max posts for a platform in a specific shift
  */
-export function getMaxPostsForPlatformShift(platform: Platform, shift: 'morning' | 'evening'): number {
+export function getMaxPostsForPlatformShift(platform: Platform, _shift: 'morning' | 'evening'): number {
   if (platform === 'tiktok') {
     // TikTok: 2 morning, 2 evening (4 total)
     return 2;
