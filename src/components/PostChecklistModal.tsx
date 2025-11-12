@@ -59,8 +59,8 @@ export function PostChecklistModal({
   
   const [items, setItems] = useState<ChecklistItem[]>([
     completionItem,
-    telegramReminderItem,
-    ...templateItems.map((item) => ({ ...item, completed: false }))
+    ...templateItems.map((item) => ({ ...item, completed: false })),
+    telegramReminderItem
   ]);
   const [notes, setNotes] = useState('');
   const [modified, setModified] = useState(false);
