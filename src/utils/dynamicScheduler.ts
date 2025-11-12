@@ -116,10 +116,18 @@ export function getNextRecommendedPost(
     }
   }
   
-  // Check timing status
-  const now = new Date();
-  const recommendedDate = new Date(recommendedTimeUTC);
-  const minutesUntilRecommended = Math.round((recommendedDate.getTime() - now.getTime()) / 1000 / 60);
+  // Check timing status - using Bangkok time directly
+  const currentBangkokTime = getCurrentBangkokTime();
+  const recommendedBangkokTimeStr = formatInTimezone(recommendedTimeUTC, 'Asia/Bangkok', false);
+  // Extract just the time part (HH:MM) from "MMM D, HH:MM AM/PM"
+  const timePart = recommendedBangkokTimeStr.split(', ')[1] || '';
+  const [timeStr, period] = timePart.split(' ');
+  let [hours, minutes] = timeStr.split(':').map(Number);
+  if (period === 'PM' && hours !== 12) hours += 12;
+  if (period === 'AM' && hours === 12) hours = 0;
+  const recommendedBangkokTime24 = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  
+  const minutesUntilRecommended = getMinutesDifference(currentBangkokTime, recommendedBangkokTime24);
   
   // Don't show if recommended time was more than 4 hours ago (240 minutes)
   if (minutesUntilRecommended < -240) {
@@ -481,10 +489,17 @@ function calculateRecommendationForPost(
     }
   }
   
-  // Check timing status
-  const now = new Date();
-  const recommendedDate = new Date(recommendedTimeUTC);
-  const minutesUntilRecommended = Math.round((recommendedDate.getTime() - now.getTime()) / 1000 / 60);
+  // Check timing status - using Bangkok time directly
+  const currentBangkokTime = getCurrentBangkokTime();
+  const recommendedBangkokTimeStr = formatInTimezone(recommendedTimeUTC, 'Asia/Bangkok', false);
+  const timePart = recommendedBangkokTimeStr.split(', ')[1] || '';
+  const [timeStr, period] = timePart.split(' ');
+  let [hours, minutes] = timeStr.split(':').map(Number);
+  if (period === 'PM' && hours !== 12) hours += 12;
+  if (period === 'AM' && hours === 12) hours = 0;
+  const recommendedBangkokTime24 = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  
+  const minutesUntilRecommended = getMinutesDifference(currentBangkokTime, recommendedBangkokTime24);
   
   const isReady = minutesUntilRecommended <= 0;
   const isTooEarly = minutesUntilRecommended > 15;
@@ -511,81 +526,86 @@ function calculateRecommendationForPost(
 }
 
 /**
- * Convert Bangkok time string (HH:MM) to UTC ISO string for today
- * Bangkok is UTC+7, so we subtract 7 hours to get UTC
+ * Get current time as "HH:MM" in Bangkok timezone
  */
-function bangkokTimeToUTC(timeString: string): string {
-  // Parse the time string
-  const [hours, minutes] = timeString.split(':').map(Number);
+function getCurrentBangkokTime(): string {
+  const now = new Date();
+  const bangkokTime = now.toLocaleString('en-US', {
+    timeZone: 'Asia/Bangkok',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+  return bangkokTime;
+}
+
+/**
+ * Get today's date in Bangkok timezone as ISO date string (YYYY-MM-DD)
+ */
+function getTodayBangkok(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+}
+
+/**
+ * Calculate minutes difference between two "HH:MM" time strings
+ */
+function getMinutesDifference(time1: string, time2: string): number {
+  const [h1, m1] = time1.split(':').map(Number);
+  const [h2, m2] = time2.split(':').map(Number);
+  return (h2 * 60 + m2) - (h1 * 60 + m1);
+}
+
+/**
+ * Create a UTC timestamp for a Bangkok time today (for storage/comparison)
+ */
+function createUTCTimestampForBangkokTime(bangkokTimeStr: string): string {
+  const [hours, minutes] = bangkokTimeStr.split(':').map(Number);
+  const bangkokDateStr = getTodayBangkok();
+  const [year, month, day] = bangkokDateStr.split('-').map(Number);
   
-  // Get today's date in Bangkok timezone (YYYY-MM-DD format)
-  const bangkokDateStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
-  
-  // Bangkok is UTC+7, so subtract 7 hours to get UTC time
+  // Bangkok is UTC+7
   let utcHours = hours - 7;
   let dateAdjustment = 0;
   
-  // Handle day boundary crossing
   if (utcHours < 0) {
     utcHours += 24;
-    dateAdjustment = -1; // Previous day in UTC
-  } else if (utcHours >= 24) {
-    utcHours -= 24;
-    dateAdjustment = 1; // Next day in UTC
+    dateAdjustment = -1;
   }
   
-  // Parse Bangkok date and adjust if needed
-  const [year, month, day] = bangkokDateStr.split('-').map(Number);
   const utcDate = new Date(Date.UTC(year, month - 1, day + dateAdjustment, utcHours, minutes, 0, 0));
-  
-  console.log(`🕐 Converting: Bangkok ${timeString} on ${bangkokDateStr} → UTC ${utcHours}:${minutes.toString().padStart(2, '0')} → ${utcDate.toISOString()}`);
-  
   return utcDate.toISOString();
 }
 
 /**
- * Get the base time for a platform/shift combination
+ * Get the base time for a platform/shift combination (returns Bangkok time string)
  */
 function getBaseTimeForShift(
   platform: Platform,
   shift: 'morning' | 'evening',
   _creatorTimezone: string
 ): string {
-  const now = new Date();
   let timeString: string;
   
   if (platform === 'tiktok') {
-    // Use first morning or evening time from Bangkok base times
     timeString = shift === 'morning' 
       ? PLATFORM_BASE_TIMES.tiktok[0] // 05:45
       : PLATFORM_BASE_TIMES.tiktok[2]; // 19:00
-    return bangkokTimeToUTC(timeString);
   } else if (platform === 'threads') {
-    // Threads: ['07:30', '10:00', '13:00', '16:00', '19:00', '20:30']
-    // Morning (before 12:00): 07:30, Evening (12:00+): 13:00
     timeString = shift === 'morning'
-      ? PLATFORM_BASE_TIMES.threads[0] // 07:30 (first morning post)
-      : PLATFORM_BASE_TIMES.threads[2]; // 13:00 (first evening post at 1 PM)
-    return bangkokTimeToUTC(timeString);
+      ? PLATFORM_BASE_TIMES.threads[0] // 07:30
+      : PLATFORM_BASE_TIMES.threads[2]; // 13:00
   } else if (platform === 'instagram') {
-    // Instagram now has 2 posts: [08:00, 20:00] (1 morning, 1 evening)
     timeString = shift === 'morning'
-      ? PLATFORM_BASE_TIMES.instagram[0] // 08:00 (morning post)
-      : PLATFORM_BASE_TIMES.instagram[1]; // 20:00 (evening post)
-    // Use creator timezone (US Central)
-    const [hours, minutes] = timeString.split(':').map(Number);
-    const creatorTime = new Date(now);
-    creatorTime.setHours(hours, minutes, 0, 0);
-    return creatorTime.toISOString();
+      ? PLATFORM_BASE_TIMES.instagram[0] // 08:00
+      : PLATFORM_BASE_TIMES.instagram[1]; // 20:00
   } else { // facebook
     timeString = shift === 'morning'
       ? PLATFORM_BASE_TIMES.facebook.morning // 10:00
       : PLATFORM_BASE_TIMES.facebook.evening; // 19:00
-    const [hours, minutes] = timeString.split(':').map(Number);
-    const creatorTime = new Date(now);
-    creatorTime.setHours(hours, minutes, 0, 0);
-    return creatorTime.toISOString();
   }
+  
+  // Convert Bangkok time to UTC timestamp for storage
+  return createUTCTimestampForBangkokTime(timeString);
 }
 
 /**
