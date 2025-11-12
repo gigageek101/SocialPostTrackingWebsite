@@ -532,9 +532,11 @@ function getBaseTimeForShift(
     bangkokTime.setUTCHours(hours - 7, minutes, 0, 0); // Bangkok is UTC+7
     return bangkokTime.toISOString();
   } else if (platform === 'threads') {
+    // Threads: ['07:30', '10:00', '13:00', '16:00', '19:00', '20:30']
+    // Morning (before 12:00): 07:30, Evening (12:00+): 13:00
     timeString = shift === 'morning'
-      ? PLATFORM_BASE_TIMES.threads[0] // 07:30
-      : PLATFORM_BASE_TIMES.threads[3]; // 16:00
+      ? PLATFORM_BASE_TIMES.threads[0] // 07:30 (first morning post)
+      : PLATFORM_BASE_TIMES.threads[2]; // 13:00 (first evening post at 1 PM)
     const [hours, minutes] = timeString.split(':').map(Number);
     const bangkokTime = new Date(now);
     bangkokTime.setUTCHours(hours - 7, minutes, 0, 0);
@@ -589,13 +591,15 @@ export function getTodayPostsForAccount(
 /**
  * Get max posts for a platform in a specific shift
  */
-export function getMaxPostsForPlatformShift(platform: Platform, _shift: 'morning' | 'evening'): number {
+export function getMaxPostsForPlatformShift(platform: Platform, shift: 'morning' | 'evening'): number {
   if (platform === 'tiktok') {
     // TikTok: 2 morning, 2 evening (4 total)
+    // ['05:45', '10:00', '19:00', '19:30']
     return 2;
   } else if (platform === 'threads') {
-    // Threads: 3 morning, 3 evening (6 total)
-    return 3;
+    // Threads: 2 morning (07:30, 10:00), 4 evening (13:00, 16:00, 19:00, 20:30)
+    // ['07:30', '10:00', '13:00', '16:00', '19:00', '20:30']
+    return shift === 'morning' ? 2 : 4;
   } else if (platform === 'instagram') {
     return 1; // 1 post per shift (2 total per day)
   } else if (platform === 'facebook') {
