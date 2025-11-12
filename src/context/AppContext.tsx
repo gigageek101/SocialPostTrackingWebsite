@@ -73,6 +73,7 @@ interface AppContextType {
   exportData: () => void;
   importData: (data: AppState) => void;
   clearScheduleData: () => Promise<void>;
+  clearTodaysPosts: () => void;
   manualSync: () => Promise<void>;
 }
 
@@ -1041,6 +1042,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setPauseAutoSync(false);
     }, 1000);
   };
+  
+  const clearTodaysPosts = () => {
+    if (!state.userSettings) return;
+    
+    console.log('🔄 Clearing today\'s posts to apply new schedule...');
+    
+    // Get today's date in user timezone
+    const now = new Date();
+    const todayInUserTZ = now.toLocaleString('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      timeZone: state.userSettings.userTimezone,
+    }).split('/').reverse().join('-').replace(/(\d+)-(\d+)-(\d+)/, '$3-$1-$2');
+    
+    // Filter out today's posts
+    setState((prev) => ({
+      ...prev,
+      postLogs: prev.postLogs.filter((log) => {
+        const postDateInUserTZ = new Date(log.timestampUTC).toLocaleString('en-US', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          timeZone: state.userSettings!.userTimezone,
+        }).split('/').reverse().join('-').replace(/(\d+)-(\d+)-(\d+)/, '$3-$1-$2');
+        
+        return postDateInUserTZ !== todayInUserTZ;
+      }),
+    }));
+    
+    console.log('✅ Today\'s posts cleared - new schedule will apply!');
+  };
 
   const manualSync = async () => {
     if (!ENABLE_SUPABASE_SYNC) {
@@ -1208,6 +1241,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         exportData: handleExportData,
         importData: handleImportData,
         clearScheduleData,
+        clearTodaysPosts,
         manualSync,
       }}
     >

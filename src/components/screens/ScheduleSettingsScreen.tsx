@@ -15,7 +15,7 @@ interface PlatformSchedule {
 }
 
 export function ScheduleSettingsScreen() {
-  const { state, setCurrentScreen, updateUserSettings } = useApp();
+  const { state, setCurrentScreen, updateUserSettings, clearTodaysPosts } = useApp();
   
   // Initialize schedule state from constants
   const [schedules, setSchedules] = useState<PlatformSchedule[]>([
@@ -121,6 +121,9 @@ export function ScheduleSettingsScreen() {
       ...state.userSettings,
       scheduleSettings,
     });
+    
+    // Clear today's posts so they regenerate with new schedule
+    clearTodaysPosts();
     
     setHasChanges(false);
     // Redirect to today screen
