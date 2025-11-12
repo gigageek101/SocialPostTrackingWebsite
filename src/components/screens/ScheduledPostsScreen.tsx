@@ -60,8 +60,8 @@ export function ScheduledPostsScreen() {
       if (isPM && hour !== 12) hour += 12;
       if (!isPM && hour === 12) hour = 0;
       
-      // Morning shift: before 2:00 PM (14:00) USER TIME, Evening: 2:00 PM and after USER TIME
-      if (hour < 14) {
+      // Morning shift: before 12:00 PM (noon) USER TIME, Evening: 12:00 PM and after USER TIME
+      if (hour < 12) {
         morningPosts.push(post);
       } else {
         eveningPosts.push(post);

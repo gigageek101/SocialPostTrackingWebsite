@@ -1,26 +1,36 @@
-import { createClient } from '@supabase/supabase-js';
+// Simplified Telegram Notification API (No Database Required)
+// This endpoint can be called by the client with user data
 
-// Vercel Serverless Function to check schedules and send Telegram notifications
 export const config = {
-  maxDuration: 60, // 60 seconds max execution
+  maxDuration: 30,
 };
 
-interface TelegramNotification {
-  chatId: string;
+interface NotificationRequest {
   botToken: string;
-  message: string;
+  chatId: string;
+  accounts: Array<{
+    id: string;
+    platform: string;
+    handle: string;
+  }>;
+  todayPosts: Array<{
+    accountId: string;
+    timestampUTC: string;
+    skipped?: boolean;
+  }>;
+  userTimezone: string;
 }
 
-async function sendTelegramMessage(notification: TelegramNotification) {
-  const url = `https://api.telegram.org/bot${notification.botToken}/sendMessage`;
+async function sendTelegramMessage(chatId: string, botToken: string, message: string) {
+  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
   
   try {
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        chat_id: notification.chatId,
-        text: notification.message,
+        chat_id: chatId,
+        text: message,
         parse_mode: 'HTML',
       }),
     });
@@ -47,159 +57,102 @@ function formatPostNotification(
 ⏰ Scheduled: <b>${scheduledTime}</b>
 
 ✅ Open the app and make your post now!
-🌐 https://social-post-tracking.vercel.app
+🌐 ${process.env.VERCEL_URL || 'your-app-url'}
   `.trim();
 }
 
 export default async function handler(req: Request) {
-  // Verify cron secret for security
-  const cronSecret = process.env.CRON_SECRET;
-  const authHeader = req.headers.get('authorization');
-  
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
+  // Allow CORS for client-side calls
+  const headers = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 200, headers });
   }
 
-  const supabaseUrl = process.env.VITE_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !supabaseServiceKey) {
+  if (req.method !== 'POST') {
     return new Response(
-      JSON.stringify({ error: 'Supabase not configured' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: 'Method not allowed' }),
+      { status: 405, headers }
     );
   }
 
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
   try {
-    // Get current time
+    const body: NotificationRequest = await req.json();
+
+    if (!body.botToken || !body.chatId) {
+      return new Response(
+        JSON.stringify({ error: 'Bot token and chat ID required' }),
+        { status: 400, headers }
+      );
+    }
+
     const now = new Date();
-    const nowISO = now.toISOString();
-    
-    // Time window: next 10 minutes
-    const checkUntil = new Date(now.getTime() + 10 * 60 * 1000);
-    const checkUntilISO = checkUntil.toISOString();
-
-    // Fetch users with Telegram enabled
-    const { data: users, error: usersError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('telegram_notifications_enabled', true)
-      .not('telegram_bot_token', 'is', null)
-      .not('telegram_chat_id', 'is', null);
-
-    if (usersError) throw usersError;
-
+    const today = now.toISOString().split('T')[0];
     const notifications: any[] = [];
     const errors: any[] = [];
 
-    for (const user of users || []) {
-      // Get user's accounts
-      const { data: accounts } = await supabase
-        .from('accounts')
-        .select('*')
-        .eq('user_id', user.id);
-
-      if (!accounts || accounts.length === 0) continue;
-
-      // Get today's posts for this user
-      const today = now.toISOString().split('T')[0];
-      const { data: todayPosts } = await supabase
-        .from('post_logs')
-        .select('*')
-        .eq('user_id', user.id)
-        .gte('timestamp_utc', `${today}T00:00:00Z`)
-        .lte('timestamp_utc', `${today}T23:59:59Z`);
-
-      // Check for notification tracking
-      const { data: sentNotifications } = await supabase
-        .from('notification_log')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('notification_date', today);
-
-      const sentNotificationKeys = new Set(
-        (sentNotifications || []).map(n => `${n.account_id}_${n.post_number}`)
+    // Check each account for upcoming posts
+    for (const account of body.accounts) {
+      const accountPosts = body.todayPosts.filter(
+        p => p.accountId === account.id && !p.skipped
       );
 
-      // For each account, calculate next post
-      for (const account of accounts) {
-        const accountPosts = (todayPosts || []).filter(
-          p => p.account_id === account.id && !p.skipped
+      const completedCount = accountPosts.length;
+      const maxPosts = getMaxPostsForPlatform(account.platform);
+      
+      if (completedCount >= maxPosts) continue;
+
+      const nextPostNumber = completedCount + 1;
+
+      // Calculate recommended time
+      let recommendedTime: Date;
+      
+      if (completedCount === 0) {
+        recommendedTime = getBaseTimeForPlatform(account.platform, now);
+      } else {
+        const lastPost = accountPosts[accountPosts.length - 1];
+        const cooldown = getCooldownMinutes(account.platform);
+        recommendedTime = new Date(
+          new Date(lastPost.timestampUTC).getTime() + cooldown * 60 * 1000
+        );
+      }
+
+      // Check if it's within 5 minutes (narrower window for manual checking)
+      const timeDiff = recommendedTime.getTime() - now.getTime();
+      const minutesUntil = Math.floor(timeDiff / 1000 / 60);
+
+      if (minutesUntil >= -2 && minutesUntil <= 5) {
+        const message = formatPostNotification(
+          account.platform,
+          account.handle,
+          nextPostNumber,
+          recommendedTime.toLocaleString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+            timeZone: body.userTimezone,
+          })
         );
 
-        // Determine next post number
-        const completedCount = accountPosts.length;
-        const maxPosts = getMaxPostsForPlatform(account.platform);
-        
-        if (completedCount >= maxPosts) continue; // All posts done
+        const result = await sendTelegramMessage(body.chatId, body.botToken, message);
 
-        const nextPostNumber = completedCount + 1;
-        const notificationKey = `${account.id}_${nextPostNumber}`;
-
-        // Skip if already notified
-        if (sentNotificationKeys.has(notificationKey)) continue;
-
-        // Calculate recommended time for next post
-        let recommendedTime: Date;
-        
-        if (completedCount === 0) {
-          // First post - use base time
-          recommendedTime = getBaseTimeForPlatform(account.platform, now);
-        } else {
-          // Subsequent post - last post + cooldown
-          const lastPost = accountPosts[accountPosts.length - 1];
-          const cooldown = getCooldownMinutes(account.platform);
-          recommendedTime = new Date(
-            new Date(lastPost.timestamp_utc).getTime() + cooldown * 60 * 1000
-          );
-        }
-
-        // Check if it's time to notify (within next 10 minutes)
-        if (recommendedTime >= now && recommendedTime <= checkUntil) {
-          const message = formatPostNotification(
-            account.platform,
-            account.handle,
-            nextPostNumber,
-            recommendedTime.toLocaleString('en-US', {
-              hour: 'numeric',
-              minute: '2-digit',
-              hour12: true,
-            })
-          );
-
-          const result = await sendTelegramMessage({
-            chatId: user.telegram_chat_id,
-            botToken: user.telegram_bot_token,
-            message,
+        if (result.success) {
+          notifications.push({
+            account: account.handle,
+            platform: account.platform,
+            postNumber: nextPostNumber,
+            minutesUntil,
           });
-
-          if (result.success) {
-            // Log notification
-            await supabase.from('notification_log').insert({
-              user_id: user.id,
-              account_id: account.id,
-              post_number: nextPostNumber,
-              notification_date: today,
-              sent_at: nowISO,
-            });
-
-            notifications.push({
-              user: user.email,
-              account: account.handle,
-              platform: account.platform,
-              postNumber: nextPostNumber,
-            });
-          } else {
-            errors.push({
-              user: user.email,
-              error: result.error,
-            });
-          }
+        } else {
+          errors.push({
+            account: account.handle,
+            error: result.error,
+          });
         }
       }
     }
@@ -210,14 +163,15 @@ export default async function handler(req: Request) {
         notificationsSent: notifications.length,
         notifications,
         errors,
+        checked: body.accounts.length,
       }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
+      { status: 200, headers }
     );
   } catch (error: any) {
-    console.error('Error in check-and-notify:', error);
+    console.error('Error in notification API:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      { status: 500, headers }
     );
   }
 }

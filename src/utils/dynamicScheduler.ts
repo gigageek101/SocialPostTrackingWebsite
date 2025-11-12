@@ -66,14 +66,14 @@ export function getNextRecommendedPost(
       if (!isPM && hour === 12) hour = 0;
       
       // Determine shift based on USER's local time (same as component logic)
-      const postShift = hour < 14 ? 'morning' : 'evening';
+      const postShift = hour < 12 ? 'morning' : 'evening';
       return postShift === shift;
     }
     
     // Fallback to UTC if parsing fails
     const postTime = new Date(p.timestampUTC);
     const hour = postTime.getUTCHours();
-    return shift === 'morning' ? hour < 14 : hour >= 14;
+    return shift === 'morning' ? hour < 12 : hour >= 12;
   });
   
   // Debug logging
@@ -275,7 +275,7 @@ export function getAllPostsForShift(
         let hour = parseInt(timeMatch[1]);
         if (isPM && hour !== 12) hour += 12;
         if (!isPM && hour === 12) hour = 0;
-        const postShift = hour < 14 ? 'morning' : 'evening';
+        const postShift = hour < 12 ? 'morning' : 'evening';
         return postShift === shift;
       }
       return false;
@@ -290,7 +290,7 @@ export function getAllPostsForShift(
         let hour = parseInt(timeMatch[1]);
         if (isPM && hour !== 12) hour += 12;
         if (!isPM && hour === 12) hour = 0;
-        const postShift = hour < 14 ? 'morning' : 'evening';
+        const postShift = hour < 12 ? 'morning' : 'evening';
         return postShift === shift;
       }
       return false;

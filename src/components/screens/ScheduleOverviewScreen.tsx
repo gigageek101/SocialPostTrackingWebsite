@@ -62,7 +62,7 @@ export function ScheduleOverviewScreen() {
   const getUserShift = (): 'morning' | 'evening' => {
     const now = new Date();
     const userHour = now.getHours();
-    return userHour < 14 ? 'morning' : 'evening';
+    return userHour < 12 ? 'morning' : 'evening';
   };
 
   const currentShift = getUserShift();

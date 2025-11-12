@@ -661,7 +661,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           let hour = parseInt(timeMatch[1]);
           if (isPM && hour !== 12) hour += 12;
           if (!isPM && hour === 12) hour = 0;
-          shift = hour < 14 ? 'morning' : 'evening';
+          shift = hour < 12 ? 'morning' : 'evening';
         }
 
         const shiftPosts = todayPosts.filter(p => {
@@ -672,7 +672,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             let postHour = parseInt(postTimeMatch[1]);
             if (postIsPM && postHour !== 12) postHour += 12;
             if (!postIsPM && postHour === 12) postHour = 0;
-            const postShift = postHour < 14 ? 'morning' : 'evening';
+            const postShift = postHour < 12 ? 'morning' : 'evening';
             return postShift === shift;
           }
           return false;

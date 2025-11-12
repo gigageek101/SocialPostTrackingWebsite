@@ -306,7 +306,7 @@ export function ScheduleHistoryScreen() {
         if (isPM && hour !== 12) hour += 12;
         if (!isPM && hour === 12) hour = 0;
         
-        if (hour < 14) {
+        if (hour < 12) {
           morningPosts.push(post);
         } else {
           eveningPosts.push(post);
