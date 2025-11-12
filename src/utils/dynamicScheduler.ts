@@ -116,18 +116,10 @@ export function getNextRecommendedPost(
     }
   }
   
-  // Check timing status - using Bangkok time directly
-  const currentBangkokTime = getCurrentBangkokTime();
-  const recommendedBangkokTimeStr = formatInTimezone(recommendedTimeUTC, 'Asia/Bangkok', false);
-  // Extract just the time part (HH:MM) from "MMM D, HH:MM AM/PM"
-  const timePart = recommendedBangkokTimeStr.split(', ')[1] || '';
-  const [timeStr, period] = timePart.split(' ');
-  let [hours, minutes] = timeStr.split(':').map(Number);
-  if (period === 'PM' && hours !== 12) hours += 12;
-  if (period === 'AM' && hours === 12) hours = 0;
-  const recommendedBangkokTime24 = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-  
-  const minutesUntilRecommended = getMinutesDifference(currentBangkokTime, recommendedBangkokTime24);
+  // Check timing status - work in UTC for now (simpler and reliable)
+  const now = new Date();
+  const recommendedDate = new Date(recommendedTimeUTC);
+  const minutesUntilRecommended = Math.round((recommendedDate.getTime() - now.getTime()) / 1000 / 60);
   
   // Don't show if recommended time was more than 4 hours ago (240 minutes)
   if (minutesUntilRecommended < -240) {
@@ -489,17 +481,10 @@ function calculateRecommendationForPost(
     }
   }
   
-  // Check timing status - using Bangkok time directly
-  const currentBangkokTime = getCurrentBangkokTime();
-  const recommendedBangkokTimeStr = formatInTimezone(recommendedTimeUTC, 'Asia/Bangkok', false);
-  const timePart = recommendedBangkokTimeStr.split(', ')[1] || '';
-  const [timeStr, period] = timePart.split(' ');
-  let [hours, minutes] = timeStr.split(':').map(Number);
-  if (period === 'PM' && hours !== 12) hours += 12;
-  if (period === 'AM' && hours === 12) hours = 0;
-  const recommendedBangkokTime24 = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-  
-  const minutesUntilRecommended = getMinutesDifference(currentBangkokTime, recommendedBangkokTime24);
+  // Check timing status - work in UTC for now (simpler and reliable)
+  const now = new Date();
+  const recommendedDate = new Date(recommendedTimeUTC);
+  const minutesUntilRecommended = Math.round((recommendedDate.getTime() - now.getTime()) / 1000 / 60);
   
   const isReady = minutesUntilRecommended <= 0;
   const isTooEarly = minutesUntilRecommended > 15;
@@ -526,41 +511,11 @@ function calculateRecommendationForPost(
 }
 
 /**
- * Get current time as "HH:MM" in Bangkok timezone
- */
-function getCurrentBangkokTime(): string {
-  const now = new Date();
-  const bangkokTime = now.toLocaleString('en-US', {
-    timeZone: 'Asia/Bangkok',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  });
-  return bangkokTime;
-}
-
-/**
- * Get today's date in Bangkok timezone as ISO date string (YYYY-MM-DD)
- */
-function getTodayBangkok(): string {
-  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
-}
-
-/**
- * Calculate minutes difference between two "HH:MM" time strings
- */
-function getMinutesDifference(time1: string, time2: string): number {
-  const [h1, m1] = time1.split(':').map(Number);
-  const [h2, m2] = time2.split(':').map(Number);
-  return (h2 * 60 + m2) - (h1 * 60 + m1);
-}
-
-/**
- * Create a UTC timestamp for a Bangkok time today (for storage/comparison)
+ * Create a UTC timestamp for a Bangkok time today
  */
 function createUTCTimestampForBangkokTime(bangkokTimeStr: string): string {
   const [hours, minutes] = bangkokTimeStr.split(':').map(Number);
-  const bangkokDateStr = getTodayBangkok();
+  const bangkokDateStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
   const [year, month, day] = bangkokDateStr.split('-').map(Number);
   
   // Bangkok is UTC+7
