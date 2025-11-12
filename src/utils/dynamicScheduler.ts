@@ -579,8 +579,6 @@ function createUTCTimestampForBangkokTime(bangkokTimeStr: string): string {
   const bangkokISO = `${yearStr}-${monthStr}-${dayStr}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00.000+07:00`;
   const utcDate = new Date(bangkokISO);
   
-  console.log(`🕐 Bangkok ${bangkokTimeStr} → ISO: ${bangkokISO} → UTC: ${utcDate.toISOString()}`);
-  
   return utcDate.toISOString();
 }
 
