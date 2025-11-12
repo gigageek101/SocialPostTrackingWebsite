@@ -52,28 +52,21 @@ export function getNextRecommendedPost(
     .filter(p => p.accountId === account.id && !p.skipped)
     .sort((a, b) => a.timestampUTC.localeCompare(b.timestampUTC));
   
-  // Separate by shift - Use USER's local time from the logged post, NOT UTC!
+  // Separate by shift - Convert UTC to user's timezone
   const shiftPosts = accountPostsToday.filter(p => {
-    // Use the timestampUserTZ which was logged at post time
-    // Parse the user time string (e.g., "Nov 6, 3:43 PM")
-    const userTimeStr = p.timestampUserTZ;
-    const isPM = userTimeStr.includes('PM');
-    const timeMatch = userTimeStr.match(/(\d+):(\d+)/);
+    // Convert UTC timestamp to hour in user's timezone
+    const postDate = new Date(p.timestampUTC);
+    const hourInUserTZ = parseInt(
+      postDate.toLocaleString('en-US', {
+        hour: 'numeric',
+        hour12: false,
+        timeZone: userSettings.userTimezone,
+      })
+    );
     
-    if (timeMatch) {
-      let hour = parseInt(timeMatch[1]);
-      if (isPM && hour !== 12) hour += 12;
-      if (!isPM && hour === 12) hour = 0;
-      
-      // Determine shift based on USER's local time (same as component logic)
-      const postShift = hour < 12 ? 'morning' : 'evening';
-      return postShift === shift;
-    }
-    
-    // Fallback to UTC if parsing fails
-    const postTime = new Date(p.timestampUTC);
-    const hour = postTime.getUTCHours();
-    return shift === 'morning' ? hour < 12 : hour >= 12;
+    // Determine shift: morning < 12, evening >= 12
+    const postShift = hourInUserTZ < 12 ? 'morning' : 'evening';
+    return postShift === shift;
   });
   
   // Debug logging
@@ -267,33 +260,29 @@ export function getAllPostsForShift(
     const skippedPosts = accountPostsToday.filter(p => p.skipped);
     
     const shiftCompletedPosts = completedPosts.filter(p => {
-      const userTimeStr = p.timestampUserTZ;
-      const isPM = userTimeStr.includes('PM');
-      const timeMatch = userTimeStr.match(/(\d+):(\d+)/);
-      
-      if (timeMatch) {
-        let hour = parseInt(timeMatch[1]);
-        if (isPM && hour !== 12) hour += 12;
-        if (!isPM && hour === 12) hour = 0;
-        const postShift = hour < 12 ? 'morning' : 'evening';
-        return postShift === shift;
-      }
-      return false;
+      const postDate = new Date(p.timestampUTC);
+      const hourInUserTZ = parseInt(
+        postDate.toLocaleString('en-US', {
+          hour: 'numeric',
+          hour12: false,
+          timeZone: userSettings.userTimezone,
+        })
+      );
+      const postShift = hourInUserTZ < 12 ? 'morning' : 'evening';
+      return postShift === shift;
     });
     
     const shiftSkippedPosts = skippedPosts.filter(p => {
-      const userTimeStr = p.timestampUserTZ;
-      const isPM = userTimeStr.includes('PM');
-      const timeMatch = userTimeStr.match(/(\d+):(\d+)/);
-      
-      if (timeMatch) {
-        let hour = parseInt(timeMatch[1]);
-        if (isPM && hour !== 12) hour += 12;
-        if (!isPM && hour === 12) hour = 0;
-        const postShift = hour < 12 ? 'morning' : 'evening';
-        return postShift === shift;
-      }
-      return false;
+      const postDate = new Date(p.timestampUTC);
+      const hourInUserTZ = parseInt(
+        postDate.toLocaleString('en-US', {
+          hour: 'numeric',
+          hour12: false,
+          timeZone: userSettings.userTimezone,
+        })
+      );
+      const postShift = hourInUserTZ < 12 ? 'morning' : 'evening';
+      return postShift === shift;
     });
     
     // Generate recommendations for ALL posts (including already completed/skipped)

@@ -64,25 +64,21 @@ export function ScheduledPostsScreen() {
   const eveningPosts: PostLogEntry[] = [];
 
   todayPosts.forEach(post => {
-    // Use the USER'S local time to determine shift (not US time)
-    const userTimeStr = post.timestampUserTZ; // e.g., "Nov 6, 3:00 AM" or "Nov 6, 3:00 PM"
-    const isPM = userTimeStr.includes('PM');
-    const timeMatch = userTimeStr.match(/(\d+):(\d+)/);
+    // Convert UTC timestamp to user's timezone hour
+    const postDate = new Date(post.timestampUTC);
+    const hourInUserTZ = parseInt(
+      postDate.toLocaleString('en-US', {
+        hour: 'numeric',
+        hour12: false,
+        timeZone: state.userSettings!.userTimezone,
+      })
+    );
     
-    if (timeMatch) {
-      let hour = parseInt(timeMatch[1]);
-      if (isPM && hour !== 12) hour += 12;
-      if (!isPM && hour === 12) hour = 0;
-      
-      // Morning shift: before 12:00 PM (noon) USER TIME, Evening: 12:00 PM and after USER TIME
-      if (hour < 12) {
-        morningPosts.push(post);
-      } else {
-        eveningPosts.push(post);
-      }
-    } else {
-      // Fallback if parsing fails
+    // Morning shift: before 12:00 (noon) in user's timezone, Evening: 12:00 and after
+    if (hourInUserTZ < 12) {
       morningPosts.push(post);
+    } else {
+      eveningPosts.push(post);
     }
   });
 
