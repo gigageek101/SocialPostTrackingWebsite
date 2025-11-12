@@ -72,7 +72,7 @@ export function generateDailyPlan(
         });
       });
     } else if (platform === 'instagram') {
-      // Instagram now has 4 posts: 2 morning + 2 evening
+      // Instagram: 1 morning + 1 evening in creator timezone
       PLATFORM_BASE_TIMES.instagram.forEach((baseTime) => {
         scheduleEntries.push({
           accountId: account.id,
@@ -82,26 +82,11 @@ export function generateDailyPlan(
           accountIndex,
         });
       });
-    } else if (platform === 'facebook') {
-      // Morning and evening in creator timezone (flexible)
-      scheduleEntries.push({
-        accountId: account.id,
-        platform,
-        baseTime: PLATFORM_BASE_TIMES.facebook.morning,
-        timezone: creator.timezone,
-        accountIndex,
-      });
-      scheduleEntries.push({
-        accountId: account.id,
-        platform,
-        baseTime: PLATFORM_BASE_TIMES.facebook.evening,
-        timezone: creator.timezone,
-        accountIndex,
-      });
     }
+    // Facebook removed from scheduling
   });
 
-  // Sort by workflow: TikTok accounts first, then Threads, then IG, then FB
+  // Sort by workflow: TikTok accounts first, then Threads, then IG
   // Within each platform, sort by account index, then by time
   const platformOrder = { tiktok: 1, threads: 2, instagram: 3, facebook: 4 };
   
