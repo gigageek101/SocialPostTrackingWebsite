@@ -122,12 +122,16 @@ export function ScheduleSettingsScreen() {
       scheduleSettings,
     });
     
-    // Clear today's posts so they regenerate with new schedule
-    clearTodaysPosts();
-    
-    setHasChanges(false);
-    // Redirect to today screen
-    setCurrentScreen('schedule-overview');
+    // Wait for state to update AND localStorage to save BEFORE clearing posts
+    // React setState is async, so we need to give it time to propagate
+    setTimeout(() => {
+      // Clear today's posts so they regenerate with new schedule
+      clearTodaysPosts();
+      
+      setHasChanges(false);
+      // Redirect to today screen
+      setCurrentScreen('schedule-overview');
+    }, 300); // 300ms delay to ensure state + localStorage have updated
   };
 
   const handleReset = () => {
