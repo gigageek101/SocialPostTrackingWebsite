@@ -511,30 +511,36 @@ function calculateRecommendationForPost(
 }
 
 /**
- * Convert Bangkok time string to UTC ISO string for today
+ * Convert Bangkok time string (HH:MM) to UTC ISO string for today
+ * Bangkok is UTC+7, so we subtract 7 hours to get UTC
  */
 function bangkokTimeToUTC(timeString: string): string {
-  // Get current date/time in Bangkok timezone using proper formatting
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Asia/Bangkok',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  });
+  // Parse the time string
+  const [hours, minutes] = timeString.split(':').map(Number);
   
-  const parts = formatter.formatToParts(new Date());
-  const year = parts.find(p => p.type === 'year')?.value || '';
-  const month = parts.find(p => p.type === 'month')?.value || '';
-  const day = parts.find(p => p.type === 'day')?.value || '';
+  // Get today's date in Bangkok timezone (YYYY-MM-DD format)
+  const bangkokDateStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
   
-  // Create ISO string with Bangkok timezone offset (+07:00)
-  const isoString = `${year}-${month}-${day}T${timeString}:00+07:00`;
-  const bangkokDate = new Date(isoString);
+  // Bangkok is UTC+7, so subtract 7 hours to get UTC time
+  let utcHours = hours - 7;
+  let dateAdjustment = 0;
   
-  // Debug logging
-  console.log(`🕐 Converting Bangkok time: ${timeString} → ${isoString} → UTC: ${bangkokDate.toISOString()}`);
+  // Handle day boundary crossing
+  if (utcHours < 0) {
+    utcHours += 24;
+    dateAdjustment = -1; // Previous day in UTC
+  } else if (utcHours >= 24) {
+    utcHours -= 24;
+    dateAdjustment = 1; // Next day in UTC
+  }
   
-  return bangkokDate.toISOString();
+  // Parse Bangkok date and adjust if needed
+  const [year, month, day] = bangkokDateStr.split('-').map(Number);
+  const utcDate = new Date(Date.UTC(year, month - 1, day + dateAdjustment, utcHours, minutes, 0, 0));
+  
+  console.log(`🕐 Converting: Bangkok ${timeString} on ${bangkokDateStr} → UTC ${utcHours}:${minutes.toString().padStart(2, '0')} → ${utcDate.toISOString()}`);
+  
+  return utcDate.toISOString();
 }
 
 /**
