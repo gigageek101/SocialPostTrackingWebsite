@@ -10,6 +10,7 @@ export function Navigation() {
   const navItems: Array<{ screen: Screen; icon: React.ReactNode; label: string }> = [
     { screen: 'schedule-overview', icon: <Home className="w-6 h-6" />, label: 'Today' },
     { screen: 'scheduled-posts', icon: <List className="w-6 h-6" />, label: 'Today History' },
+    { screen: 'schedule-settings', icon: <Settings className="w-6 h-6" />, label: 'Schedule' },
     { screen: 'content', icon: <FileText className="w-6 h-6" />, label: 'Content' },
     { screen: 'workflow', icon: <BookOpen className="w-6 h-6" />, label: 'Workflow' },
     { screen: 'schedule-history', icon: <History className="w-6 h-6" />, label: 'History' },

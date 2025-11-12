@@ -6,6 +6,7 @@ import { AuthScreen } from './components/screens/AuthScreen';
 import { OnboardingScreen } from './components/screens/OnboardingScreen';
 import { ScheduleOverviewScreen } from './components/screens/ScheduleOverviewScreen';
 import { ScheduledPostsScreen } from './components/screens/ScheduledPostsScreen';
+import { ScheduleSettingsScreen } from './components/screens/ScheduleSettingsScreen';
 import { ContentScreen } from './components/screens/ContentScreen';
 import { WorkflowScreen } from './components/screens/WorkflowScreen';
 import { ScheduleHistoryScreen } from './components/screens/ScheduleHistoryScreen';
@@ -109,6 +110,7 @@ function AppContent() {
       <main className="min-h-screen pb-24 sm:pb-0">
         {currentScreen === 'schedule-overview' && <ScheduleOverviewScreen />}
         {currentScreen === 'scheduled-posts' && <ScheduledPostsScreen />}
+        {currentScreen === 'schedule-settings' && <ScheduleSettingsScreen />}
         {currentScreen === 'content' && <ContentScreen />}
         {currentScreen === 'workflow' && <WorkflowScreen />}
         {currentScreen === 'schedule-history' && <ScheduleHistoryScreen />}

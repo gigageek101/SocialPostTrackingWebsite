@@ -154,6 +154,7 @@ export type Screen =
   | 'onboarding'
   | 'schedule-overview'
   | 'scheduled-posts'
+  | 'schedule-settings'
   | 'content'
   | 'workflow'
   | 'schedule-history'

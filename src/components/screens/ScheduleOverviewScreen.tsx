@@ -5,7 +5,7 @@ import { PostChecklistModal } from '../PostChecklistModal';
 import { BackdatePostModal } from '../BackdatePostModal';
 import { PostCard } from '../PostCard';
 import { PlatformIcon } from '../ui/PlatformIcon';
-import { CheckCircle, RefreshCw } from 'lucide-react';
+import { CheckCircle, RefreshCw, Clock } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ChecklistState } from '../../types';
 import { format } from 'date-fns';
@@ -19,6 +19,7 @@ export function ScheduleOverviewScreen() {
   const [showBackdateModal, setShowBackdateModal] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [syncing, setSyncing] = useState(false);
+  const [sortByYourTime, setSortByYourTime] = useState(false);
 
   useEffect(() => {
     // Update current time every second
@@ -277,9 +278,26 @@ export function ScheduleOverviewScreen() {
 
         {/* Current Shift Posts */}
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            📋 {currentShift === 'morning' ? 'Morning' : 'Evening'} Shift Checklist
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold text-gray-900">
+              📋 {currentShift === 'morning' ? 'Morning' : 'Evening'} Shift Checklist
+            </h2>
+            
+            {/* Sort Filter Button */}
+            {currentShiftPosts.length > 0 && (
+              <button
+                onClick={() => setSortByYourTime(!sortByYourTime)}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 font-semibold shadow-md hover:shadow-lg ${
+                  sortByYourTime 
+                    ? 'bg-green-600 hover:bg-green-700 text-white' 
+                    : 'bg-gray-600 hover:bg-gray-700 text-white'
+                }`}
+              >
+                <Clock className="w-4 h-4" />
+                {sortByYourTime ? '✓ Sorted by Time' : 'Sort by Time'}
+              </button>
+            )}
+          </div>
           
           {currentShiftPosts.length === 0 ? (
             <Card className="text-center p-8">
@@ -297,7 +315,10 @@ export function ScheduleOverviewScreen() {
             </Card>
           ) : (
             <div className="space-y-3">
-              {currentShiftPosts.map(rec => {
+              {(sortByYourTime 
+                ? [...currentShiftPosts].sort((a, b) => a.recommendedTimeUTC.localeCompare(b.recommendedTimeUTC))
+                : currentShiftPosts
+              ).map(rec => {
                 const account = state.accounts.find(a => a.id === rec.accountId);
                 const creator = state.creators.find(c => c.id === account?.creatorId);
                 if (!account || !creator) return null;
