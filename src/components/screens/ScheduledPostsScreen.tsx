@@ -12,6 +12,7 @@ export function ScheduledPostsScreen() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [sortByYourTime, setSortByYourTime] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -312,14 +313,29 @@ export function ScheduledPostsScreen() {
             Only showing posts you've actually made today • Click to expand for details
           </p>
           
-          {/* Link to Schedule History */}
-          <button
-            onClick={() => setCurrentScreen('schedule-history')}
-            className="mt-4 inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
-          >
-            <History className="w-5 h-5" />
-            View All History
-          </button>
+          <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
+            {/* Sort Filter Button */}
+            <button
+              onClick={() => setSortByYourTime(!sortByYourTime)}
+              className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105 ${
+                sortByYourTime 
+                  ? 'bg-green-600 hover:bg-green-700 text-white' 
+                  : 'bg-gray-600 hover:bg-gray-700 text-white'
+              }`}
+            >
+              <Clock className="w-5 h-5" />
+              {sortByYourTime ? '✓ Sorted by Your Time' : 'Sort by Your Time'}
+            </button>
+            
+            {/* Link to Schedule History */}
+            <button
+              onClick={() => setCurrentScreen('schedule-history')}
+              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
+            >
+              <History className="w-5 h-5" />
+              View All History
+            </button>
+          </div>
         </div>
 
         {/* Recommended Schedule Info */}
@@ -353,8 +369,8 @@ export function ScheduledPostsScreen() {
                     <h4 className="font-bold text-gray-900">Threads (6 posts/day)</h4>
                   </div>
                   <div className="text-sm text-gray-700 space-y-1">
-                    <p><strong>Morning:</strong> {PLATFORM_BASE_TIMES.threads.slice(0, 3).join(', ')} (Bangkok)</p>
-                    <p><strong>Evening:</strong> {PLATFORM_BASE_TIMES.threads.slice(3).join(', ')} (Bangkok)</p>
+                    <p><strong>Morning:</strong> {PLATFORM_BASE_TIMES.threads.slice(0, 2).join(', ')} (Bangkok)</p>
+                    <p><strong>Afternoon:</strong> {PLATFORM_BASE_TIMES.threads.slice(2).join(', ')} (Bangkok)</p>
                     <p className="text-xs text-orange-600">⏱️ 2-hour cooldown between posts</p>
                   </div>
                 </div>
@@ -395,7 +411,7 @@ export function ScheduledPostsScreen() {
                   <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                     🌅 Morning Shift
                   </h2>
-                  <p className="text-sm text-gray-600 mt-1">Before 2:00 PM (US Time)</p>
+                  <p className="text-sm text-gray-600 mt-1">Before 12:00 PM (Your Time - Bangkok)</p>
                 </div>
                 <div className="text-right">
                   <div className="text-3xl font-black text-amber-600">
@@ -405,7 +421,7 @@ export function ScheduledPostsScreen() {
                 </div>
               </div>
             </div>
-            {renderPostsTable(morningPosts, 'morning shift')}
+            {renderPostsTable(sortByYourTime ? [...morningPosts].sort((a, b) => a.timestampUTC.localeCompare(b.timestampUTC)) : morningPosts, 'morning shift')}
           </Card>
         )}
 
@@ -416,9 +432,9 @@ export function ScheduledPostsScreen() {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                    🌙 Evening Shift
+                    🌙 Afternoon/Evening Shift
                   </h2>
-                  <p className="text-sm text-gray-600 mt-1">After 2:00 PM (US Time)</p>
+                  <p className="text-sm text-gray-600 mt-1">12:00 PM and After (Your Time - Bangkok)</p>
                 </div>
                 <div className="text-right">
                   <div className="text-3xl font-black text-purple-600">
@@ -428,7 +444,7 @@ export function ScheduledPostsScreen() {
                 </div>
               </div>
             </div>
-            {renderPostsTable(eveningPosts, 'evening shift')}
+            {renderPostsTable(sortByYourTime ? [...eveningPosts].sort((a, b) => a.timestampUTC.localeCompare(b.timestampUTC)) : eveningPosts, 'afternoon/evening shift')}
           </Card>
         )}
       </div>
