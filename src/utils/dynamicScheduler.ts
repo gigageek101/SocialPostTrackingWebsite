@@ -514,22 +514,25 @@ function calculateRecommendationForPost(
  * Convert Bangkok time string to UTC ISO string for today
  */
 function bangkokTimeToUTC(timeString: string): string {
-  // Get today's date in Bangkok timezone
-  const nowInBangkok = new Date().toLocaleString('en-US', { 
+  // Get current date/time in Bangkok timezone using proper formatting
+  const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: 'Asia/Bangkok',
     year: 'numeric',
     month: '2-digit',
-    day: '2-digit',
-    hour12: false
+    day: '2-digit'
   });
   
-  // Parse the Bangkok date (format: MM/DD/YYYY, ...)
-  const [datePart] = nowInBangkok.split(',');
-  const [month, day, year] = datePart.split('/');
+  const parts = formatter.formatToParts(new Date());
+  const year = parts.find(p => p.type === 'year')?.value || '';
+  const month = parts.find(p => p.type === 'month')?.value || '';
+  const day = parts.find(p => p.type === 'day')?.value || '';
   
-  // Create a date string in ISO format for Bangkok timezone
-  // Bangkok is UTC+7, so we use +07:00 offset
-  const bangkokDate = new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${timeString}:00+07:00`);
+  // Create ISO string with Bangkok timezone offset (+07:00)
+  const isoString = `${year}-${month}-${day}T${timeString}:00+07:00`;
+  const bangkokDate = new Date(isoString);
+  
+  // Debug logging
+  console.log(`🕐 Converting Bangkok time: ${timeString} → ${isoString} → UTC: ${bangkokDate.toISOString()}`);
   
   return bangkokDate.toISOString();
 }

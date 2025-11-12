@@ -288,14 +288,21 @@ export function ScheduleSettingsScreen() {
           </div>
         </Card>
 
-        {/* Back Button */}
-        <div className="mt-6 text-center">
+        {/* Action Buttons at Bottom */}
+        <div className="mt-6 flex items-center justify-center gap-4">
           <Button
             variant="secondary"
             onClick={() => setCurrentScreen('schedule-overview')}
             className="px-8"
           >
             ← Back to Today
+          </Button>
+          <Button
+            onClick={handleSave}
+            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 px-8"
+          >
+            <Save className="w-5 h-5" />
+            Save Schedule
           </Button>
         </div>
       </div>
