@@ -524,24 +524,31 @@ function getScheduledTimeForPost(
   
   if (userSettings.scheduleSettings && userSettings.scheduleSettings[platform]) {
     times = userSettings.scheduleSettings[platform].times;
+    console.log(`✅ Using CUSTOM schedule for ${platform}:`, times);
   } else {
     // Fallback to hardcoded defaults
     const defaultTimes = PLATFORM_BASE_TIMES[platform];
     if (!defaultTimes || typeof defaultTimes !== 'object' || Array.isArray(defaultTimes) === false) {
+      console.log(`❌ No times found for ${platform}!`);
       return null;
     }
     times = defaultTimes as string[];
+    console.log(`⚠️ Using HARDCODED defaults for ${platform}:`, times);
   }
 
   if (shift === 'morning') {
     // Morning posts use the first half of the array
     const index = postNumber - 1;
-    return times[index] || null;
+    const result = times[index] || null;
+    console.log(`🌅 ${platform} MORNING Post ${postNumber}: index=${index}, time=${result}`);
+    return result;
   } else {
     // Evening posts use the second half
     const morningPostCount = getMaxPostsForPlatformShift(platform, 'morning');
     const index = morningPostCount + (postNumber - 1);
-    return times[index] || null;
+    const result = times[index] || null;
+    console.log(`🌙 ${platform} EVENING Post ${postNumber}: morningCount=${morningPostCount}, index=${index}, time=${result}`);
+    return result;
   }
 }
 
