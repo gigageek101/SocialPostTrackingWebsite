@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { PostChecklistModal } from '../PostChecklistModal';
@@ -29,10 +29,10 @@ export function ScheduleOverviewScreen() {
     return () => clearInterval(interval);
   }, []);
 
-  // Force re-render when posts are logged
+  // Force re-render when posts are logged OR schedule changes
   useEffect(() => {
       setCurrentTime(new Date());
-  }, [state.postLogs.length, state.accounts]);
+  }, [state.postLogs.length, state.accounts, state.userSettings?.scheduleSettings]);
 
   if (!state.userSettings || state.creators.length === 0 || state.accounts.length === 0) {
     return (
@@ -89,22 +89,30 @@ export function ScheduleOverviewScreen() {
 
   const currentShift = getUserShift();
   
-  // Get all posts for current shift
-  const morningPosts = getAllPostsForShift(
-    state.accounts,
-    state.creators,
-    state.userSettings,
-    'morning',
-    todayPosts
-  );
+  // Get all posts for current shift - recalculate when schedule changes
+  const morningPosts = useMemo(() => {
+    if (!state.userSettings) return [];
+    console.log('🔄 Recalculating morning posts with schedule:', state.userSettings.scheduleSettings?.tiktok?.times);
+    return getAllPostsForShift(
+      state.accounts,
+      state.creators,
+      state.userSettings,
+      'morning',
+      todayPosts
+    );
+  }, [state.accounts, state.creators, state.userSettings, todayPosts]);
 
-  const eveningPosts = getAllPostsForShift(
-    state.accounts,
-    state.creators,
-    state.userSettings,
-    'evening',
-    todayPosts
-  );
+  const eveningPosts = useMemo(() => {
+    if (!state.userSettings) return [];
+    console.log('🔄 Recalculating evening posts with schedule:', state.userSettings.scheduleSettings?.tiktok?.times);
+    return getAllPostsForShift(
+      state.accounts,
+      state.creators,
+      state.userSettings,
+      'evening',
+      todayPosts
+    );
+  }, [state.accounts, state.creators, state.userSettings, todayPosts]);
 
   const currentShiftPosts = currentShift === 'morning' ? morningPosts : eveningPosts;
   const otherShiftPosts = currentShift === 'morning' ? eveningPosts : morningPosts;

@@ -98,6 +98,7 @@ export function getNextRecommendedPost(
   // Use the exact scheduled time based on post number, not cooldown calculation
   const scheduledTime = getScheduledTimeForPost(platform, shift, postNumber, userSettings);
   console.log(`📅 ${platform} ${shift} Post ${postNumber} → Scheduled Time: ${scheduledTime}`);
+  console.log(`   → From schedule:`, userSettings.scheduleSettings?.[platform]?.times || 'using hardcoded defaults');
   
   if (scheduledTime) {
     recommendedTimeUTC = createUTCTimestampForBangkokTime(scheduledTime);
