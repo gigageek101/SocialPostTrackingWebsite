@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
-import { AlertTriangle, Award, Timer, Play, Pause } from 'lucide-react';
+import { AlertTriangle, Award, Timer, Play, Pause, CheckCircle } from 'lucide-react';
 import { Platform, ChecklistItem, ChecklistState, PostLogEntry } from '../types';
 import { CHECKLIST_TEMPLATES } from '../constants/platforms';
 
@@ -141,6 +141,27 @@ export function PostChecklistModal({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const handleCompleteAll = () => {
+    setItems((prev) =>
+      prev.map((item) => {
+        // Check if this item has a timer
+        const needsTimer = item.id === 'tiktok-view-stories' || item.label.toLowerCase().includes('scroll');
+        
+        // Skip timer items and post completion item (first item)
+        if (needsTimer) {
+          return item;
+        }
+        
+        // Complete all other items with their recommended counts
+        if (item.type === 'counter' && item.recommendedCount !== undefined) {
+          return { ...item, completed: true, count: item.recommendedCount };
+        }
+        
+        return { ...item, completed: true };
+      })
+    );
+  };
+
   const handleSubmit = () => {
     const checklistState: ChecklistState = {
       platform,
@@ -186,7 +207,18 @@ export function PostChecklistModal({
 
         {/* Checklist Items */}
         <div className="space-y-4">
-          <h3 className="font-semibold text-gray-900 text-lg">Now it's time for:</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-gray-900 text-lg">Now it's time for:</h3>
+            <Button
+              onClick={handleCompleteAll}
+              variant="secondary"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <CheckCircle className="w-4 h-4" />
+              Complete All
+            </Button>
+          </div>
           
           {items.map((item, index) => {
             // Check if this item should have a timer (view stories / scrolling)
