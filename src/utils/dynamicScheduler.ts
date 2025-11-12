@@ -512,22 +512,31 @@ function calculateRecommendationForPost(
 
 /**
  * Create a UTC timestamp for a Bangkok time today
+ * Use date-fns-tz for reliable timezone conversion
  */
 function createUTCTimestampForBangkokTime(bangkokTimeStr: string): string {
   const [hours, minutes] = bangkokTimeStr.split(':').map(Number);
-  const bangkokDateStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
-  const [year, month, day] = bangkokDateStr.split('-').map(Number);
   
-  // Bangkok is UTC+7
-  let utcHours = hours - 7;
-  let dateAdjustment = 0;
+  // Get current date in Bangkok timezone
+  const now = new Date();
+  const bangkokFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Bangkok',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
   
-  if (utcHours < 0) {
-    utcHours += 24;
-    dateAdjustment = -1;
-  }
+  const parts = bangkokFormatter.formatToParts(now);
+  const yearStr = parts.find(p => p.type === 'year')?.value || '2024';
+  const monthStr = parts.find(p => p.type === 'month')?.value || '01';
+  const dayStr = parts.find(p => p.type === 'day')?.value || '01';
   
-  const utcDate = new Date(Date.UTC(year, month - 1, day + dateAdjustment, utcHours, minutes, 0, 0));
+  // Construct ISO string with +07:00 offset (Bangkok timezone)
+  const bangkokISO = `${yearStr}-${monthStr}-${dayStr}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00.000+07:00`;
+  const utcDate = new Date(bangkokISO);
+  
+  console.log(`🕐 Bangkok ${bangkokTimeStr} → ISO: ${bangkokISO} → UTC: ${utcDate.toISOString()}`);
+  
   return utcDate.toISOString();
 }
 
