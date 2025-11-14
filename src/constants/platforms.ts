@@ -6,8 +6,8 @@ export const DEFAULT_CREATOR_TIMEZONE = 'America/Chicago'; // US Central Time
 export const US_TIMEZONE = 'America/Chicago'; // All creators use US time
 
 export const PLATFORM_BASE_TIMES = {
-  tiktok: ['05:45', '10:00', '18:30', '20:30'], // 5:45AM, 10AM, 6:30PM, 8:30PM
-  threads: ['07:30', '10:00', '13:00', '16:00', '19:00', '20:30'], // 7:30AM, 10AM, 1PM, 4PM, 7PM, 8:30PM
+  tiktok: ['05:00', '08:00', '17:30', '20:30'], // 5:00AM, 8:00AM, 5:30PM, 8:30PM
+  threads: ['05:00', '06:00', '07:00', '18:30', '19:30', '20:30'], // 5:00AM, 6:00AM, 7:00AM, 6:30PM, 7:30PM, 8:30PM
   instagram: ['08:00', '20:00'], // Morning: 8am | Evening: 8pm (US time)
   facebook: {
     morning: '10:00', // Kept for backwards compatibility (not used in schedule)
@@ -17,7 +17,7 @@ export const PLATFORM_BASE_TIMES = {
 
 export const COOLDOWN_MINUTES: Record<Platform, number> = {
   tiktok: 120, // 2 hours
-  threads: 120, // 2 hours
+  threads: 60, // 1 hour
   instagram: 0, // No cooldown
   facebook: 0, // No cooldown
 };

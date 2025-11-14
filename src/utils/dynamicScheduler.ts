@@ -592,12 +592,12 @@ function getBaseTimeForShift(
   
   if (platform === 'tiktok') {
     timeString = shift === 'morning' 
-      ? PLATFORM_BASE_TIMES.tiktok[0] // 05:45
-      : PLATFORM_BASE_TIMES.tiktok[2]; // 19:00
+      ? PLATFORM_BASE_TIMES.tiktok[0] // 05:00
+      : PLATFORM_BASE_TIMES.tiktok[2]; // 17:30
   } else if (platform === 'threads') {
     timeString = shift === 'morning'
-      ? PLATFORM_BASE_TIMES.threads[0] // 07:30
-      : PLATFORM_BASE_TIMES.threads[2]; // 13:00
+      ? PLATFORM_BASE_TIMES.threads[0] // 05:00
+      : PLATFORM_BASE_TIMES.threads[3]; // 18:30
   } else if (platform === 'instagram') {
     timeString = shift === 'morning'
       ? PLATFORM_BASE_TIMES.instagram[0] // 08:00
@@ -644,12 +644,12 @@ export function getTodayPostsForAccount(
 export function getMaxPostsForPlatformShift(platform: Platform, shift: 'morning' | 'evening'): number {
   if (platform === 'tiktok') {
     // TikTok: 2 morning, 2 evening (4 total)
-    // ['05:45', '10:00', '18:30', '20:30']
+    // ['05:00', '08:00', '17:30', '20:30']
     return 2;
   } else if (platform === 'threads') {
-    // Threads: 2 morning (07:30, 10:00), 4 evening (13:00, 16:00, 19:00, 20:30)
-    // ['07:30', '10:00', '13:00', '16:00', '19:00', '20:30']
-    return shift === 'morning' ? 2 : 4;
+    // Threads: 3 morning (05:00, 06:00, 07:00), 3 evening (18:30, 19:30, 20:30)
+    // ['05:00', '06:00', '07:00', '18:30', '19:30', '20:30']
+    return 3;
   } else if (platform === 'instagram') {
     return 1; // 1 post per shift (2 total per day)
   } else if (platform === 'facebook') {
